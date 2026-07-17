@@ -48,8 +48,12 @@
       "tenant": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
     }
     ```
+6.  查询可用区域：
 
-这些信息将在后续步骤中使用。
+    ```bash
+    az policy assignment list --disable-scope-strict-match --query "[?parameters.listOfAllowedLocations].parameters.listOfAllowedLocations.value[]" -o tsv | sort -u
+    ```
+
 
 ## 🚀 第二步：一键部署到新服务器
 
