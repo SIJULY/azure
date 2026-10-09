@@ -7,9 +7,26 @@ const DEFAULT_OVERVIEW_DATA = {
   accounts: { total: 0, healthy: 0, error: 0 },
   resource_groups: { total: 0 },
   vms: { running: 0, stopped: 0, total: 0 },
-  foundry: { total: 0 },
+  foundry: { total: 0, partial: false },
   recent_jobs: [],
 };
+const OVERVIEW_CACHE_VERSION = 2;
+
+function readOverviewCache() {
+  try {
+    const raw = localStorage.getItem("overview_cache");
+    if (!raw) return DEFAULT_OVERVIEW_DATA;
+    const parsed = JSON.parse(raw);
+    if (parsed?.version !== OVERVIEW_CACHE_VERSION) return DEFAULT_OVERVIEW_DATA;
+    return normalizeOverviewData(parsed.data);
+  } catch { return DEFAULT_OVERVIEW_DATA; }
+}
+
+function writeOverviewCache(data) {
+  try {
+    localStorage.setItem("overview_cache", JSON.stringify({ version: OVERVIEW_CACHE_VERSION, data }));
+  } catch {}
+}
 
 function normalizeOverviewData(data) {
   return {
@@ -167,10 +184,7 @@ function QuotaCard({ accounts }) {
 export default function Overview() {
   const [data, setData] = useState(() => {
     // 优先显示缓存；首次无缓存时用默认数据立即渲染页面，接口在后台静默刷新。
-    try {
-      const c = localStorage.getItem("overview_cache");
-      return c ? normalizeOverviewData(JSON.parse(c)) : DEFAULT_OVERVIEW_DATA;
-    } catch { return DEFAULT_OVERVIEW_DATA; }
+    return readOverviewCache();
   });
   const [err, setErr] = useState("");
   const [accounts, setAccounts] = useState(() => {
@@ -184,10 +198,16 @@ export default function Overview() {
 
   useEffect(() => {
     // 后台静默更新，不阻塞页面
-    api.get("/overview").then((d) => {
-      setData(normalizeOverviewData(d));
+    api.get("/overview?refresh=true").then((d) => {
+      const next = normalizeOverviewData(d);
+      setData((prev) => {
+        const merged = next.foundry.partial
+          ? { ...next, foundry: { ...next.foundry, total: prev?.foundry?.total || 0 } }
+          : next;
+        writeOverviewCache(merged);
+        return merged;
+      });
       setErr("");
-      try { localStorage.setItem("overview_cache", JSON.stringify(d)); } catch {}
     }).catch((e) => {
       // 页面已经可用，失败时只轻量提示，不阻塞总览内容展示。
       setErr(e.message);

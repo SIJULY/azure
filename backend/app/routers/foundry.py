@@ -10,6 +10,17 @@ from ..jobs import create_job, run_in_background
 router = APIRouter(prefix="/foundry", tags=["Foundry"])
 
 
+def is_foundry_account(account) -> bool:
+    """Return True for Cognitive Services accounts that are usable as Foundry/OpenAI resources.
+
+    Azure's Microsoft.CognitiveServices/accounts provider can also return speech,
+    language, translator, etc. Counting all of them makes the Overview Foundry card
+    larger than the actual Foundry resources managed by this page.
+    """
+    kind = str(getattr(account, "kind", "") or "").strip().lower()
+    return kind in {"aiservices", "openai"}
+
+
 class EnsureIn(BaseModel):
     account_id: int
     region: str
@@ -89,6 +100,7 @@ def _do_foundry_resources(account_id: int) -> list:
                 "kind": a.kind,
             }
             for a in accounts
+            if is_foundry_account(a)
         ]
     finally:
         db.close()
