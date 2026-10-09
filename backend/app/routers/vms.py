@@ -113,10 +113,10 @@ def list_vms(account_id: int, refresh: bool = False, db: Session = Depends(get_d
 
 
 def _do_vm_meta(account_id: int, region: str) -> dict:
-    """只从 DB 读取区域和规格（不变的数据，首次通过后台任务或手动触发拉取并保存）。"""
+    """区域/规格：优先从 DB 读（持久化不变数据）；DB 为空时从 Azure 拉取并保存。"""
     import json as _json
     import re as _re
-    from ..azure_svc import SessionLocal
+    from ..azure_svc import SessionLocal, get_manager, proxy_env, call_with_timeout
     from ..db import AzureAccount
     db = SessionLocal()
     try:
@@ -130,22 +130,43 @@ def _do_vm_meta(account_id: int, region: str) -> dict:
             "ip_permission": "",
             "_fetch_ok": True,
         }
-        # 区域：从 DB 读
+        # 区域：先读 DB，为空则从 Azure 拉取并保存
         try:
             regions = _json.loads(acct.supported_regions) if acct.supported_regions else []
         except Exception:
             regions = []
+        if not regions:
+            mgr, _a = get_manager(account_id, db)
+            with proxy_env(_a):
+                regions = call_with_timeout(
+                    lambda: mgr.get_regions(),
+                    timeout=45, timeout_msg="区域查询超时")
+            if not regions:
+                raise RuntimeError("Azure 返回的区域列表为空")
+            acct.supported_regions = _json.dumps(regions, ensure_ascii=False)
+            db.commit()
         for r in regions:
             m = _re.search(r'\(([^)]+)\)$', r)
             code = m.group(1).lower() if m else r.lower()
             out["regions"].append({"code": code, "name_cn": AZURE_REGIONS_CN.get(code, r)})
-        # 规格：从 DB 读
+        # 规格：先读 DB，为空则从 Azure 拉取并保存
         if region:
             try:
                 sizes_map = _json.loads(acct.region_vm_sizes) if acct.region_vm_sizes else {}
             except Exception:
                 sizes_map = {}
-            out["vm_sizes"] = sizes_map.get(region, [])
+            sizes = sizes_map.get(region, [])
+            if not sizes:
+                mgr, _a = get_manager(account_id, db)
+                with proxy_env(_a):
+                    sizes = call_with_timeout(
+                        lambda: mgr.get_supported_vm_sizes(region),
+                        timeout=45, timeout_msg="规格查询超时") or []
+                if sizes:
+                    sizes_map[region] = sizes
+                    acct.region_vm_sizes = _json.dumps(sizes_map, ensure_ascii=False)
+                    db.commit()
+            out["vm_sizes"] = sizes
         return out
     finally:
         db.close()
