@@ -102,6 +102,7 @@ def _to_out(a: AzureAccount, db: Session) -> dict:
         "alias": a.alias,
         "subscription_id": a.subscription_id,
         "subscription_name": a.subscription_name or "",
+        "country_code": a.country_code or "",
         "quota_tier": a.quota_tier or "",
         "status": a.status,
         "status_msg": a.status_msg or "",
@@ -147,6 +148,8 @@ def _do_test(a: AzureAccount, db: Session) -> dict:
     a.status = "healthy"
     a.status_msg = ""
     a.subscription_name = info.get("subscription_name", "")
+    if info.get("country_code"):
+        a.country_code = info["country_code"]
     if info.get("quota_tier"):
         a.quota_tier = info["quota_tier"]
     a.last_checked = _now()
@@ -170,8 +173,10 @@ def create_account(data: AccountIn, db: Session = Depends(get_db), _u: User = De
         client_secret_enc=crypto.encrypt(data.client_secret),
         subscription_id=data.subscription_id.strip(),
         subscription_name=info.get("subscription_name", ""),
+        country_code=info.get("country_code", ""),
         quota_tier=info.get("quota_tier", ""),
         status="healthy",
+        proxy_id=data.proxy_id,
     )
     db.add(a)
     db.commit()
@@ -199,9 +204,11 @@ def update_account(account_id: int, data: AccountIn, db: Session = Depends(get_d
     a.client_secret_enc = crypto.encrypt(payload["client_secret"])
     a.subscription_id = data.subscription_id.strip()
     a.subscription_name = info.get("subscription_name", "")
+    a.country_code = info.get("country_code", "") or a.country_code
     a.quota_tier = info.get("quota_tier", "")
     a.status = "healthy"
     a.status_msg = ""
+    a.proxy_id = data.proxy_id
     db.commit()
     record_operation(db, "account_update", f"更新 Azure 账号 {a.alias}", resource=a.alias, account_id=a.id, operator=_u)
     return _to_out(a, db)
@@ -276,6 +283,7 @@ def batch_import(data: BatchImportIn, db: Session = Depends(get_db), _u: User = 
             client_secret_enc=crypto.encrypt(item.client_secret),
             subscription_id=item.subscription_id.strip(),
             subscription_name=info.get("subscription_name", ""),
+            country_code=info.get("country_code", ""),
             quota_tier=info.get("quota_tier", ""),
             status="healthy",
             proxy_id=item.proxy_id,

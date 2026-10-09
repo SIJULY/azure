@@ -132,11 +132,7 @@ def query_cost_range(account_id: int, start: str, end: str, group_by: str = "non
         client_id=profile["client_id"],
         client_secret=profile["client_secret"],
     )
-    token = call_with_timeout(
-        lambda: cred.get_token("https://management.azure.com/.default").token,
-        timeout=15,
-        timeout_msg="获取 Azure token 超时",
-    )
+    token = cred.get_token("https://management.azure.com/.default").token
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     url = (
         f"https://management.azure.com/subscriptions/{profile['subscription_id']}"
@@ -163,7 +159,7 @@ def query_cost_range(account_id: int, start: str, end: str, group_by: str = "non
             raise RuntimeError(f"费用查询失败：{resp.status_code} {resp.text[:200]}")
         return resp.json()
 
-    data = call_with_timeout(_do, timeout=30, timeout_msg="账单查询超时")
+    data = call_with_timeout(_do, timeout_msg="账单查询超时")
     props = data.get("properties", {})
     columns = [c.get("name") for c in props.get("columns", [])]
     rows = props.get("rows", [])
@@ -175,14 +171,6 @@ def query_cost_range(account_id: int, start: str, end: str, group_by: str = "non
             return -1
 
     i_cost, i_curr, i_date, i_rg = _col("PreTaxCost"), _col("Currency"), _col("UsageDate"), _col("ResourceGroupName")
-
-    def _usage_date(value) -> str:
-        text = str(value or "").strip()
-        # Cost Management 的 UsageDate 常见返回为 20261009，也可能是 2026-10-09T00:00:00Z。
-        if len(text) == 8 and text.isdigit():
-            return f"{text[:4]}-{text[4:6]}-{text[6:8]}"
-        return text[:10]
-
     total = 0.0
     currency = ""
     daily: dict = {}
@@ -194,33 +182,19 @@ def query_cost_range(account_id: int, start: str, end: str, group_by: str = "non
             cost = 0.0
         total += cost
         if i_curr >= 0 and not currency:
-            try:
-                currency = str(r[i_curr] or "")
-            except IndexError:
-                currency = ""
-        try:
-            date_s = _usage_date(r[i_date]) if i_date >= 0 else ""
-        except IndexError:
-            date_s = ""
-        try:
-            rg = str(r[i_rg]) if i_rg >= 0 and r[i_rg] else ""
-        except IndexError:
-            rg = ""
+            currency = str(r[i_curr])
+        date_s = str(r[i_date])[:10] if i_date >= 0 else ""
+        rg = str(r[i_rg]) if i_rg >= 0 and r[i_rg] else ""
         if date_s:
             daily[date_s] = daily.get(date_s, 0.0) + cost
         if rg:
             details[rg] = details.get(rg, 0.0) + cost
 
-    total = round(total, 2)
-    detail_rows = [{"resource_group": k, "cost": round(v, 2)} for k, v in sorted(details.items(), key=lambda x: -x[1])]
-    if not detail_rows and rows:
-        detail_rows = [{"resource_group": "全部", "cost": total}]
-
     return {
-        "total": total,
+        "total": round(total, 2),
         "currency": currency or "USD",
         "daily": [{"date": d, "cost": round(c, 2)} for d, c in sorted(daily.items())],
-        "details": detail_rows,
+        "details": [{"resource_group": k, "cost": round(v, 2)} for k, v in sorted(details.items(), key=lambda x: -x[1])],
     }
 
 
@@ -306,6 +280,7 @@ def test_connection(data: dict) -> dict:
         cred = ClientSecretCredential(
             tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
         )
+        country_code = ""
         with proxy_env():
             access_token = cred.get_token("https://management.azure.com/.default").token
             # 一次轻量 ARM 调用：读订阅信息
@@ -314,6 +289,20 @@ def test_connection(data: dict) -> dict:
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=15,
             )
+            # best-effort：读取租户信息中的注册国家/地区。失败不影响账号连接测试。
+            try:
+                tenants_resp = _requests.get(
+                    "https://management.azure.com/tenants?api-version=2020-01-01",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=10,
+                )
+                if tenants_resp.status_code == 200:
+                    tenants = tenants_resp.json().get("value", [])
+                    current = next((t for t in tenants if (t.get("tenantId") or "").lower() == tenant_id.lower()), tenants[0] if tenants else {})
+                    code = current.get("countryCode") or current.get("country") or ""
+                    country_code = str(code).strip().upper()[:8]
+            except Exception:
+                country_code = ""
     except Exception as e:
         raise RuntimeError(f"认证失败：{e}")
     if resp.status_code == 401 or resp.status_code == 403:
@@ -327,4 +316,4 @@ def test_connection(data: dict) -> dict:
         sub_name = resp.json().get("displayName", "")
     except Exception:
         pass
-    return {"ok": True, "subscription_name": sub_name, "quota_tier": ""}
+    return {"ok": True, "subscription_name": sub_name, "quota_tier": "", "country_code": country_code}

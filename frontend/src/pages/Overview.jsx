@@ -134,11 +134,13 @@ function HeaderContext({ accounts }) {
 }
 
 function SyncNotice({ syncing, err }) {
-  if (!syncing && !err) return null;
+  const visible = syncing || err;
   return (
-    <div className={`mb-5 flex items-center gap-2 rounded-xl border px-4 py-3 text-[13px] ${err ? "border-amber-200 bg-amber-50 text-amber-800" : "border-blue-100 bg-blue-50 text-blue-700"}`}>
-      <span className={`h-2 w-2 rounded-full ${syncing ? "animate-pulse bg-blue-500" : "bg-amber-500"}`} />
-      {err ? `当前显示本地缓存数据，后台同步失败：${err}` : "正在后台同步 Azure 数据，页面会优先显示本地缓存。"}
+    <div className="mb-5 h-[46px]">
+      <div className={`flex h-full items-center gap-2 rounded-xl border px-4 text-[13px] transition-opacity duration-200 ${visible ? "opacity-100" : "pointer-events-none opacity-0"} ${err ? "border-amber-200 bg-amber-50 text-amber-800" : "border-blue-100 bg-blue-50 text-blue-700"}`}>
+        <span className={`h-2 w-2 rounded-full ${syncing ? "animate-pulse bg-blue-500" : "bg-amber-500"}`} />
+        {err ? `当前显示本地缓存数据，后台同步失败：${err}` : "正在后台同步 Azure 数据，页面会优先显示本地缓存。"}
+      </div>
     </div>
   );
 }

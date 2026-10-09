@@ -2,28 +2,50 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
 import { publishAccountOverview } from "../overviewSync.js";
 import {
-  Badge, Btn, Card, Check, Confirm, EmptyState, Field, Input, Loading,
-  Modal, Select, StatusBadge, Td, Table, Textarea, useSearch, useToast,
+  Badge, Btn, Check, Confirm, EmptyState, Field, Input, Loading,
+  Modal, Select, StatusBadge, Textarea, useSearch, useToast,
 } from "../ui.jsx";
 
-/* ---------- 图标按钮 ---------- */
-function IconBtn({ title, onClick, disabled, danger, children }) {
-  return (
-    <button
-      title={title}
-      onClick={onClick}
-      disabled={disabled}
-      className={`w-8 h-8 inline-flex items-center justify-center rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed ${danger ? "text-slate-400 hover:text-red-600 hover:bg-red-50" : "text-slate-400 hover:text-blue-600 hover:bg-blue-50"}`}
-    >
-      {children}
-    </button>
-  );
-}
 const Svg = ({ d }) => (
   <svg className="w-[16px] h-[16px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d={d} />
   </svg>
 );
+
+const toFlagEmoji = (code) => {
+  const cc = String(code || "").trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return "";
+  return cc.replace(/./g, (ch) => String.fromCodePoint(127397 + ch.charCodeAt(0)));
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const normalized = String(value).replace(" ", "T");
+  const d = new Date(normalized);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("zh-CN", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+};
+
+function AccountIcon() {
+  return (
+    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+      <Svg d="M3.5 19.5h17M7 16.5V9l5-3 5 3v7.5M9.5 16.5v-4h5v4" />
+    </span>
+  );
+}
+
+function ActionButton({ title, onClick, disabled, danger, children }) {
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-40 ${danger ? "text-red-500 hover:bg-red-50 hover:text-red-600" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}
+    >
+      {children}
+    </button>
+  );
+}
 
 /* ---------- 添加账号弹窗（服务主体凭据 → 查询订阅 → 保存） ---------- */
 function AccountModal({ proxies, onClose, onSaved }) {
@@ -220,7 +242,7 @@ function ImportModal({ proxies, onClose, onSaved }) {
       else if (l.includes("\t")) parts = l.split("\t").map((s) => s.trim());
       else if (l.includes(",")) parts = l.split(",").map((s) => s.trim());
       else parts = l.split(/\s+/);
-      const [alias, tenant_id, client_id, subscription_id, client_secret, proxyName, note] = parts;
+      const [alias, tenant_id, client_id, subscription_id, client_secret, proxyName, _note] = parts;
       if (!alias || !tenant_id || !client_id || !subscription_id || !client_secret)
         throw new Error(`第 ${idx + 1} 行字段不足（需要：显示名称、Tenant ID、Client ID、Subscription ID、Client Secret）`);
       let proxy_id = null;
@@ -284,6 +306,129 @@ const STATUS_OPTS = [
   ["all", "全部状态"], ["healthy", "可用"], ["error", "异常"],
   ["inactive", "非活跃"], ["disabled", "已禁用"], ["verifying", "验证中"], ["unchecked", "未检查"],
 ];
+
+function AccountsView({ query, statusF, setStatusF, filtered, items, loading, sel, toggle, toggleAll, refreshAll, setImportOpen, setAddOpen, setConfirmDel, testing, testOne, setEditInit }) {
+  return (
+    <>
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="text-[20px] font-semibold tracking-tight text-slate-950">
+            <span className="text-slate-500">AzureIn</span>
+            <span className="mx-2 text-slate-300">/</span>
+            <span>Azure 账号</span>
+          </div>
+          <p className="mt-1 text-[13px] text-slate-500">管理服务主体凭据和请求代理。</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Btn variant="secondary" className="h-10 rounded-xl bg-slate-50 px-4 text-slate-900 hover:bg-slate-100" onClick={refreshAll}>
+            <Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" /> 批量刷新状态
+          </Btn>
+          <Btn variant="secondary" className="h-10 rounded-xl bg-slate-50 px-4 text-slate-900 hover:bg-slate-100" onClick={() => setImportOpen(true)}>
+            <Svg d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /> 批量导入账户
+          </Btn>
+          <Btn className="h-10 rounded-xl px-5 text-[14px] shadow-sm" onClick={() => setAddOpen(true)}>
+            <Svg d="M12 5v14M5 12h14" /> 添加 Azure 账号
+          </Btn>
+        </div>
+      </div>
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="flex flex-col gap-4 border-b border-slate-100 px-7 py-6 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h2 className="text-[18px] font-semibold tracking-tight text-slate-950">账号列表</h2>
+            <p className="mt-1 text-[13px] text-slate-500">管理已接入的 Azure 账号、订阅状态和请求代理。</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-[360px]">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <Svg d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
+              </span>
+              <Input placeholder="搜索账户名称或订阅 ID" className="h-11 rounded-xl pl-10" value={query} readOnly />
+            </div>
+            <Select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="h-11 w-full rounded-xl sm:w-40">
+              {STATUS_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+            </Select>
+          </div>
+        </div>
+
+        <div className="px-7 py-5">
+          <div className="mb-5 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <Check label="全选当前列表" checked={sel.length === filtered.length && filtered.length > 0} onChange={toggleAll} />
+            <Btn variant="danger" className="rounded-xl bg-red-500 px-4 hover:bg-red-600" disabled={sel.length === 0}
+              title={sel.length === 0 ? "请先选择要删除的账号" : ""}
+              onClick={() => sel.length > 0 && setConfirmDel("batch")}>
+              <Svg d="M19 7l-.9 12.1A2 2 0 0116.1 21H7.9a2 2 0 01-2-1.9L5 7M10 11v6M14 11v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+              批量删除{sel.length > 0 ? `（${sel.length}）` : ""}
+            </Btn>
+          </div>
+
+          {loading ? <Loading /> : filtered.length === 0 ? (
+            <EmptyState icon="🔑" text="还没有 Azure 账号" />
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-[13px]">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500">
+                      <th className="w-[32%] px-4 py-4 font-medium">名称</th>
+                      <th className="px-4 py-4 font-medium">账户类型</th>
+                      <th className="px-4 py-4 font-medium">订阅</th>
+                      <th className="px-4 py-4 font-medium">代理</th>
+                      <th className="px-4 py-4 font-medium">订阅状态</th>
+                      <th className="px-4 py-4 font-medium">最后检测</th>
+                      <th className="px-4 py-4 font-medium">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((a) => {
+                      const flag = toFlagEmoji(a.country_code);
+                      return (
+                        <tr key={a.id} className="border-b border-slate-100 transition hover:bg-slate-50/70">
+                          <td className="px-4 py-5 align-middle">
+                            <div className="flex items-center gap-4">
+                              <input type="checkbox" className="h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600" checked={sel.includes(a.id)} onChange={() => toggle(a.id)} />
+                              <AccountIcon />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 text-[15px] font-semibold text-slate-950">
+                                  <span className="truncate">{a.alias}</span>
+                                  {flag && <span title={a.country_code}>{flag}</span>}
+                                </div>
+                                <div className="mt-1 max-w-[360px] break-all font-mono text-[12px] text-slate-500">ID: {a.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-5 align-middle">
+                            <Badge color="blue" className="rounded-full px-3 py-1 text-[13px]">
+                              <span className="mr-1">◇</span>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-5 align-middle"><div className="max-w-[260px] break-all font-mono text-[13px] text-slate-600">{a.subscription_id || "—"}</div></td>
+                          <td className="px-4 py-5 align-middle">
+                            {a.proxy_url || a.proxy_name ? <div className="max-w-[260px] truncate text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
+                          </td>
+                          <td className="px-4 py-5 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 max-w-[220px] truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
+                          <td className="px-4 py-5 align-middle text-slate-500 whitespace-nowrap">{formatDateTime(a.last_checked)}</td>
+                          <td className="px-4 py-5 align-middle">
+                            <div className="flex items-center gap-1 whitespace-nowrap">
+                              <ActionButton title="重新检测账户状态" onClick={() => testOne(a)} disabled={testing === a.id}><Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" /></ActionButton>
+                              <ActionButton title="编辑" onClick={() => setEditInit(a)}><Svg d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></ActionButton>
+                              <ActionButton title="删除" danger onClick={() => setConfirmDel(a.id)}><Svg d="M19 7l-.9 12.1A2 2 0 0116.1 21H7.9a2 2 0 01-2-1.9L5 7M10 11v6M14 11v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></ActionButton>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 text-[12px] text-slate-400">显示 {filtered.length} / {items.length} 项 · 切换筛选条件会清空选择。全选仅作用于当前列表。</div>
+            </>
+          )}
+        </div>
+      </section>
+    </>
+  );
+}
 
 export default function Accounts() {
   const [query] = useSearch();
@@ -360,72 +505,24 @@ export default function Accounts() {
 
   return (
     <>
-      <div className="mb-4">
-        <h1 className="text-[20px] font-bold text-slate-900">Azure 账号</h1>
-        <p className="text-[13px] text-slate-500 mt-1">管理服务主体凭据和请求代理。</p>
-      </div>
-      <div className="flex justify-end gap-2 mb-4">
-        <Btn variant="secondary" onClick={refreshAll}>批量刷新状态</Btn>
-        <Btn variant="secondary" onClick={() => setImportOpen(true)}>批量导入账户</Btn>
-        <Btn onClick={() => setAddOpen(true)}>+ 添加 Azure 账号</Btn>
-      </div>
-
-      <Card title="账号列表" sub="管理已接入的 Azure 账号、订阅状态和请求代理。">
-        <div className="flex items-center gap-2 mb-3">
-          <Input placeholder="搜索账户名称或订阅 ID" className="max-w-xs" value={query} readOnly />
-          <Select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="w-32">
-            {STATUS_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-          </Select>
-        </div>
-        <div className="flex items-center justify-between mb-2">
-          <Check label="全选当前列表" checked={sel.length === filtered.length && filtered.length > 0} onChange={toggleAll} />
-          <Btn variant="dangerOutline" disabled={sel.length === 0}
-            title={sel.length === 0 ? "请先选择要删除的账号" : ""}
-            onClick={() => sel.length > 0 && setConfirmDel("batch")}>
-            批量删除{sel.length > 0 ? `（${sel.length}）` : ""}
-          </Btn>
-        </div>
-
-        {loading ? <Loading /> : filtered.length === 0 ? (
-          <EmptyState icon="🔑" text="还没有 Azure 账号" />
-        ) : (
-          <>
-            <Table cols={["名称", "订阅", "代理", "订阅状态", "最后检测", "操作"]}>
-              {filtered.map((a) => (
-                <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50/60">
-                  <Td>
-                    <div className="flex items-start gap-2">
-                      <input type="checkbox" className="w-4 h-4 accent-blue-600 mt-1 shrink-0" checked={sel.includes(a.id)} onChange={() => toggle(a.id)} />
-                      <div>
-                        <div className="font-medium text-slate-900">{a.alias}</div>
-                        <div className="text-[12px] text-slate-400 font-mono">ID: {a.id}</div>
-                      </div>
-                    </div>
-                  </Td>
-                  <Td><div className="font-mono text-[12px] text-slate-700 break-all max-w-[220px]">{a.subscription_id}</div></Td>
-                  <Td>{a.proxy_name ? <Badge color="blue">{a.proxy_name}</Badge> : <span className="text-slate-400">—</span>}</Td>
-                  <Td><StatusBadge status={a.status} />{a.status_msg && <div className="text-[12px] text-red-500 mt-0.5 max-w-[220px] truncate" title={a.status_msg}>{a.status_msg}</div>}</Td>
-                  <Td className="text-slate-500 whitespace-nowrap">{a.last_checked || "—"}</Td>
-                  <Td>
-                    <div className="flex gap-0.5 whitespace-nowrap">
-                      <IconBtn title="重新检测账户状态" onClick={() => testOne(a)} disabled={testing === a.id}>
-                        <Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" />
-                      </IconBtn>
-                      <IconBtn title="编辑" onClick={() => setEditInit(a)}>
-                        <Svg d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-                      </IconBtn>
-                      <IconBtn title="删除" danger onClick={() => setConfirmDel(a.id)}>
-                        <Svg d="M19 7l-.9 12.1A2 2 0 0116.1 21H7.9a2 2 0 01-2-1.9L5 7M10 11v6M14 11v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
-                      </IconBtn>
-                    </div>
-                  </Td>
-                </tr>
-              ))}
-            </Table>
-            <div className="text-[12px] text-slate-400 mt-3">显示 {filtered.length} / {items.length} 项 · 切换筛选条件会清空选择。全选仅作用于当前列表。</div>
-          </>
-        )}
-      </Card>
+      <AccountsView
+        query={query}
+        statusF={statusF}
+        setStatusF={setStatusF}
+        filtered={filtered}
+        items={items}
+        loading={loading}
+        sel={sel}
+        toggle={toggle}
+        toggleAll={toggleAll}
+        refreshAll={refreshAll}
+        setImportOpen={setImportOpen}
+        setAddOpen={setAddOpen}
+        setConfirmDel={setConfirmDel}
+        testing={testing}
+        testOne={testOne}
+        setEditInit={setEditInit}
+      />
 
       {addOpen && <AccountModal proxies={proxies} onClose={() => setAddOpen(false)} onSaved={() => { setAddOpen(false); load(); }} />}
       {editInit && <EditModal proxies={proxies} init={editInit} onClose={() => setEditInit(null)} onSaved={() => { setEditInit(null); load(); }} />}

@@ -31,6 +31,7 @@ class AzureAccount(Base):
     client_secret_enc = Column(Text, nullable=False)   # Fernet 加密
     subscription_id = Column(String(128), nullable=False)
     subscription_name = Column(String(256), default="")
+    country_code = Column(String(8), default="")          # 租户/订阅注册国家代码，如 CN/US（best-effort 检测）
     quota_tier = Column(String(64), default="")
     status = Column(String(16), default="healthy")     # healthy | error
     status_msg = Column(Text, default="")
@@ -129,6 +130,16 @@ class ApiToken(Base):
     last_used_at = Column(String(32), nullable=True)
 
 
+class ResourceCache(Base):
+    """Azure 读接口本地缓存：页面先读旧数据，后台刷新成功后覆盖；失败不清旧值。"""
+    __tablename__ = "resource_cache"
+    key = Column(String(256), primary_key=True)
+    data_json = Column(Text, default="")
+    updated_at = Column(String(32), default=_now)
+    refresh_started_at = Column(String(32), nullable=True)
+    last_error = Column(Text, default="")
+
+
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -147,8 +158,9 @@ def _migrate():
             return {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
         want = {
             "jobs": [("attempts", "INTEGER DEFAULT 1"), ("updated_at", "VARCHAR(32)")],
-            "azure_accounts": [("proxy_id", "INTEGER"), ("last_checked", "VARCHAR(32)"), ("supported_regions", "TEXT DEFAULT ''"), ("region_vm_sizes", "TEXT DEFAULT ''")],
+            "azure_accounts": [("proxy_id", "INTEGER"), ("last_checked", "VARCHAR(32)"), ("supported_regions", "TEXT DEFAULT ''"), ("region_vm_sizes", "TEXT DEFAULT ''"), ("country_code", "VARCHAR(8) DEFAULT ''")],
             "init_scripts": [("os_type", "VARCHAR(16) DEFAULT 'linux'")],
+            "resource_cache": [("refresh_started_at", "VARCHAR(32)"), ("last_error", "TEXT DEFAULT ''")],
         }
         for table, columns in want.items():
             try:
