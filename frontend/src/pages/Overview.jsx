@@ -354,21 +354,35 @@ function NeedPanel({ data, jobs, syncError }) {
 
 export default function Overview() {
   const [data, setData] = useState(() => readOverviewCache());
+  const [recentJobs, setRecentJobs] = useState(() => {
+    const cached = readOverviewCache();
+    return Array.isArray(cached.recent_jobs) ? cached.recent_jobs : [];
+  });
   const [accounts, setAccounts] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     let cancelled = false;
+    const loadRecentJobs = () => {
+      api.get("/jobs?limit=8", { timeout: 30000 }).then((items) => {
+        if (!cancelled) setRecentJobs(Array.isArray(items) ? items : []);
+      }).catch(() => {});
+    };
+
     api.get("/accounts", { timeout: 30000 }).then((d) => {
       if (!cancelled) setAccounts(d.items || []);
     }).catch(() => {});
+    loadRecentJobs();
 
     setSyncing(true);
     api.get("/overview?refresh=true", { timeout: 120000 }).then((d) => {
       if (cancelled) return;
       const normalized = writeOverviewCache(normalizeOverviewData(d), false);
       setData(normalized);
+      if (Array.isArray(normalized.recent_jobs) && normalized.recent_jobs.length > 0) {
+        setRecentJobs(normalized.recent_jobs);
+      }
       setErr("");
     }).catch((e) => {
       if (!cancelled) setErr(e.message);
@@ -378,17 +392,23 @@ export default function Overview() {
 
     const onOverviewUpdated = (e) => {
       if (cancelled) return;
-      setData(normalizeOverviewData(e.detail || readOverviewCache()));
+      const normalized = normalizeOverviewData(e.detail || readOverviewCache());
+      setData(normalized);
+      if (Array.isArray(normalized.recent_jobs) && normalized.recent_jobs.length > 0) {
+        setRecentJobs(normalized.recent_jobs);
+      }
     };
     window.addEventListener(OVERVIEW_UPDATED_EVENT, onOverviewUpdated);
+    const jobsTimer = setInterval(loadRecentJobs, 5000);
     return () => {
       cancelled = true;
+      clearInterval(jobsTimer);
       window.removeEventListener(OVERVIEW_UPDATED_EVENT, onOverviewUpdated);
     };
   }, []);
 
   const vms = data.vms || {};
-  const jobs = Array.isArray(data.recent_jobs) ? data.recent_jobs : [];
+  const jobs = Array.isArray(recentJobs) ? recentJobs : [];
   const failedJobs = jobs.filter((j) => j.status === "failed").length;
 
   return (
