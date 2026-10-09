@@ -19,7 +19,6 @@ const ICONS = {
   quotas: "M3 17l6-6 4 4 8-8M15 7h6v6",
   rgs: "M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z",
   vms: "M4 5h16a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1zM2 19h20",
-  firewall: "M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z",
   foundry: "M9 3h6M10 3v6l-5 9a2 2 0 001.8 3h10.4A2 2 0 0019 18l-5-9V3",
   scripts: "M8 9l-4 3 4 3M16 9l4 3-4 3M13 5l-2 14",
   jobs: "M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01",
@@ -43,7 +42,6 @@ const GROUPS = [
     items: [
       { to: "/resource-groups", label: "资源组", icon: "rgs" },
       { to: "/virtual-machines", label: "虚拟机", icon: "vms" },
-      { to: "/firewall", label: "防火墙", icon: "firewall" },
       { to: "/foundry", label: "Foundry", icon: "foundry" },
       { to: "/scripts", label: "初始化脚本", icon: "scripts" },
     ],

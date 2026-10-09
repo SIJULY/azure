@@ -14,6 +14,17 @@ const RefreshIcon = ({ spinning }) => (
   </svg>
 );
 
+const shortSub = (value) => {
+  const s = String(value || "");
+  return s.length > 13 ? `${s.slice(0, 8)}…${s.slice(-4)}` : s;
+};
+
+const accountOptionLabel = (account, tier) => {
+  const alias = account?.alias || `account-${account?.id}`;
+  const quotaTier = tier?.quota_tier || "未知";
+  return `${alias} / ${shortSub(account?.subscription_id)} / ${quotaTier}`;
+};
+
 /* ---------- 创建 Foundry 账号弹窗 ---------- */
 function EnsureModal({ accounts, tiers, onClose, onSaved }) {
   const toast = useToast();
@@ -295,13 +306,13 @@ export default function Foundry() {
 
       {/* 筛选区 */}
       <div className="flex items-end gap-3 mb-4 flex-wrap">
-        <div>
+        <div className="w-full sm:w-72 min-w-0">
           <div className="text-[13px] font-medium text-slate-700 mb-1.5">Azure 账号</div>
-          <Select value={accountId} onChange={(e) => { setAccountId(e.target.value); setFoundryId("all"); }} className="w-64">
+          <Select value={accountId} onChange={(e) => { setAccountId(e.target.value); setFoundryId("all"); }} className="!w-full truncate">
             <option value="all">全部账户</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.alias} / {a.subscription_id} / {tiers[a.id]?.quota_tier || "未知"}
+                {accountOptionLabel(a, tiers[a.id])}
               </option>
             ))}
           </Select>
@@ -311,9 +322,9 @@ export default function Foundry() {
             </div>
           )}
         </div>
-        <div>
+        <div className="w-full sm:w-56 min-w-0">
           <div className="text-[13px] font-medium text-slate-700 mb-1.5">Foundry 账号</div>
-          <Select value={foundryId} onChange={(e) => setFoundryId(e.target.value)} className="w-56">
+          <Select value={foundryId} onChange={(e) => setFoundryId(e.target.value)} className="!w-full truncate">
             <option value="all">全部账户</option>
             {allResources.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
           </Select>
@@ -324,9 +335,11 @@ export default function Foundry() {
             {refreshing ? "刷新中..." : "刷新"}
           </Btn>
         </div>
-        <div className="flex-1" />
-        <Btn onClick={() => setEnsureOpen(true)}>+ 创建 Foundry 账号</Btn>
-        <Btn onClick={() => setBatchOpen(true)}>+ 批量部署模型</Btn>
+        <div className="hidden xl:block flex-1" />
+        <div className="flex items-center gap-3 flex-wrap">
+          <Btn onClick={() => setEnsureOpen(true)}>+ 创建 Foundry 账号</Btn>
+          <Btn onClick={() => setBatchOpen(true)}>+ 批量部署模型</Btn>
+        </div>
       </div>
 
       {/* 表格 */}

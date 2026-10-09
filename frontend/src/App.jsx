@@ -11,7 +11,6 @@ import Billing from "./pages/Billing.jsx";
 import Quotas from "./pages/Quotas.jsx";
 import ResourceGroups from "./pages/ResourceGroups.jsx";
 import VMs from "./pages/VMs.jsx";
-import Firewall from "./pages/Firewall.jsx";
 import Foundry from "./pages/Foundry.jsx";
 import Scripts from "./pages/Scripts.jsx";
 import Jobs from "./pages/Jobs.jsx";
@@ -40,7 +39,6 @@ export default function App() {
             <Route path="/quotas" element={<Quotas />} />
             <Route path="/resource-groups" element={<ResourceGroups />} />
             <Route path="/virtual-machines" element={<VMs />} />
-            <Route path="/firewall" element={<Firewall />} />
             <Route path="/foundry" element={<Foundry />} />
             <Route path="/scripts" element={<Scripts />} />
             <Route path="/jobs" element={<Jobs />} />

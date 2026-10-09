@@ -7,10 +7,10 @@ const DEFAULT_OVERVIEW_DATA = {
   accounts: { total: 0, healthy: 0, error: 0 },
   resource_groups: { total: 0 },
   vms: { running: 0, stopped: 0, total: 0 },
-  foundry: { total: 0, partial: false },
+  foundry: { total: 0, resources_total: 0, partial: false },
   recent_jobs: [],
 };
-const OVERVIEW_CACHE_VERSION = 3;
+const OVERVIEW_CACHE_VERSION = 4;
 
 function readOverviewCache() {
   try {
@@ -241,6 +241,7 @@ export default function Overview() {
   ];
 
   const v = data.vms || {};
+  const foundryResourcesTotal = data.foundry.resources_total ?? data.foundry.total ?? 0;
   return (
     <>
       <div className="mb-4 flex items-center gap-2">
@@ -267,7 +268,7 @@ export default function Overview() {
             <StatCard to="/virtual-machines" color="purple" icon="vm" title="虚拟机" big={v.total || 0}
               rows={[{ c: "green", t: `运行中 ${v.running || 0}` }, { c: "gray", t: `已停止 ${v.stopped || 0}` }]} />
             <StatCard to="/foundry" color="orange" icon="foundry" title="Foundry" big={data.foundry.total}
-              rows={[{ c: "green", t: `运行正常 ${data.foundry.total}` }, { c: "amber", t: "需要处理 0" }]} />
+              rows={[{ c: "green", t: `Foundry 账号 ${data.foundry.total}` }, { c: "gray", t: `资源 ${foundryResourcesTotal}` }]} />
           </div>
         </Card>
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 import {
   Badge, Btn, Card, Confirm, EmptyState, Field, Input, Loading,
@@ -344,10 +344,6 @@ export default function VMs() {
                     <Btn key={a.k} variant="ghost" className={`!text-[12px] !px-2.5 ${a.danger ? "!text-red-600" : "!text-slate-600"}`}
                       onClick={() => clickAct(v, a.k)}>{a.t}</Btn>
                   ))}
-                  <Link to={`/firewall?vm=${encodeURIComponent(v.name)}`}
-                    className="text-[12px] text-slate-600 hover:text-blue-600 px-2.5 py-1.5 rounded-lg hover:bg-slate-100">
-                    防火墙
-                  </Link>
                 </div>
               </div>
             ))}

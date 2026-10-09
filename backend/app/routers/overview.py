@@ -28,6 +28,7 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
     vms_running = 0
     vms_stopped = 0
     foundry_total = 0
+    foundry_resources_total = 0
     foundry_query_failed = False
 
     for a in [x for x in accounts if x.status == "healthy"]:
@@ -71,13 +72,17 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
                 vms_stopped += s
             except Exception:
                 pass
-            # Foundry（只统计 AIServices/OpenAI，和 Foundry 页面资源列表保持同一口径）
+            # Foundry（总览卡片按 Azure 账号数统计，而不是按资源数量统计。
+            # 同一订阅下可能有多个 AIServices/OpenAI 资源，但用户语义上仍然是 1 个 Foundry 账号入口。）
             try:
                 def _count_cs():
                     from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
                     cs = CognitiveServicesManagementClient(mgr.credential, mgr.subscription_id)
                     return len([x for x in cs.accounts.list() if is_foundry_account(x)])
-                foundry_total += call_with_timeout(_count_cs, timeout=20, timeout_msg="Foundry 查询超时")
+                resource_count = call_with_timeout(_count_cs, timeout=20, timeout_msg="Foundry 查询超时")
+                foundry_resources_total += resource_count
+                if resource_count > 0:
+                    foundry_total += 1
             except Exception:
                 foundry_query_failed = True
 
@@ -87,7 +92,7 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
         "accounts": {"total": len(accounts), "healthy": healthy, "error": error},
         "resource_groups": {"total": total_rg},
         "vms": {"running": vms_running, "stopped": vms_stopped, "total": vms_running + vms_stopped},
-        "foundry": {"total": foundry_total, "partial": foundry_query_failed},
+        "foundry": {"total": foundry_total, "resources_total": foundry_resources_total, "partial": foundry_query_failed},
         "recent_jobs": [
             {"id": j.id, "type": j.type, "title": j.title, "account_id": j.account_id,
              "status": j.status, "created_at": j.created_at, "finished_at": j.finished_at}

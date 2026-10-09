@@ -58,12 +58,6 @@ Base URL: `/api`，除登录外全部需要 `Authorization: Bearer <jwt>`。
 - `POST /api/vms/action` `{account_id, resource_group, vm_name, action: "start"|"stop"|"restart"|"delete"|"change_ip"}` → `{job_id}`（delete=删除整个资源组）
 - `GET /api/vms/{account_id}/{resource_group}/{vm_name}` → 单台详情
 
-## 防火墙（NSG 规则）
-
-- `GET /api/firewall?account_id=1` → `[{id(nsg_id), name, resource_group, location, rules: [{name, priority, direction, access, protocol, src_prefix, src_port, dst_port, description}]}]`
-- `POST /api/firewall/rules` `{account_id, resource_group, nsg_name, rule: {name, priority, direction: "Inbound"|"Outbound", access: "Allow"|"Deny", protocol: "Tcp"|"Udp"|"*", src_prefix?, src_port?, dst_port, description?}}` → `{ok: true}`
-- `DELETE /api/firewall/rules` `{account_id, resource_group, nsg_name, rule_name}` → `{ok: true}`
-
 ## Foundry
 
 - `GET /api/foundry/regions?account_id=1` → `{regions: [...]}`

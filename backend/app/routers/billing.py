@@ -8,6 +8,35 @@ from ..azure_svc import get_manager, proxy_env, call_with_timeout, query_cost_ra
 router = APIRouter(prefix="/billing", tags=["账单费用"])
 
 
+def _cost_number(value):
+    """把旧桌面版 AzureManager 返回的 mtd/acc/history 字符串转成数值；不可转时返回 None。"""
+    try:
+        if value is None:
+            return None
+        return round(float(value), 2)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_cost_data(cost_data: dict | None) -> dict:
+    """兼容旧项目费用查询结构：{mtd, acc, history, currency}。"""
+    cost_data = cost_data or {}
+    mtd_raw = cost_data.get("mtd", cost_data.get("month_to_date"))
+    acc_raw = cost_data.get("acc", cost_data.get("accumulated"))
+    history_raw = cost_data.get("history")
+    history_12m = cost_data.get("history_12m")
+    if not isinstance(history_12m, list):
+        history_12m = []
+    return {
+        "month_to_date": _cost_number(mtd_raw),
+        "accumulated": _cost_number(acc_raw),
+        "history_total": _cost_number(history_raw),
+        "currency": cost_data.get("currency") or "USD",
+        "status_text": str(mtd_raw) if _cost_number(mtd_raw) is None and mtd_raw is not None else "",
+        "history_12m": history_12m,
+    }
+
+
 def _do_billing(account_id: int) -> dict:
     from ..azure_svc import SessionLocal
     db = SessionLocal()
@@ -24,12 +53,11 @@ def _do_billing(account_id: int) -> dict:
             )
         if not ok:
             raise RuntimeError(f"获取费用失败：{_msg}")
+        normalized = _normalize_cost_data(cost_data)
         return {
             "account_id": account_id,
             "account_alias": acct.alias,
-            "month_to_date": cost_data.get("month_to_date"),
-            "currency": cost_data.get("currency", "USD"),
-            "history_12m": cost_data.get("history") or cost_data.get("history_12m") or [],
+            **normalized,
             "raw": cost_data,
         }
     finally:
@@ -44,8 +72,6 @@ def _cached_billing(account_id: int) -> dict:
 @router.get("")
 def billing(account_id: int = Query(...), refresh: bool = False, db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     try:
-        if refresh:
-            cache_invalidate("_cached_billing")
         if refresh:
             cache_invalidate("_cached_billing")
         return _cached_billing(account_id)
@@ -90,8 +116,11 @@ def billing_summary(db: Session = Depends(get_db), _u: User = Depends(get_curren
                     timeout_msg="账单查询超时",
                 )
             if ok and cost_data:
-                item["month_to_date"] = cost_data.get("month_to_date")
-                item["currency"] = cost_data.get("currency", "USD")
+                normalized = _normalize_cost_data(cost_data)
+                item["month_to_date"] = normalized["month_to_date"]
+                item["currency"] = normalized["currency"]
+                if normalized["status_text"]:
+                    item["error"] = normalized["status_text"]
             else:
                 item["error"] = str(_msg or "查询失败")
         except Exception as e:

@@ -8,7 +8,7 @@ Base URL: `/api/v1`，除登录外全部需要 `Authorization: Bearer <jwt>`。
 - 主色蓝色（主按钮/高亮/链接）；次要按钮灰/白描边；危险操作红色描边。
 - 表格表头浅灰底；空状态居中图标 + 灰色文字。
 - 顶栏：蓝色方块 Logo + "AzureIn"→改为"Azure面板"？不——品牌用 **"Azure面板"** + 副标题 "Cloud control plane"；搜索框占位"搜索当前页内容...（⌘K)"；"简体中文"；深色切换；圆形头像按钮（用户名首字母）。
-- 侧边栏分组：平台（总览、Azure 账号、代理、账单费用、资源配额）、资源管理（资源组、虚拟机、防火墙、Foundry、初始化脚本）、运维中心（任务中心、API 访问、API 文档）。当前页高亮。底部 "© 2026 Azure Panel"。
+- 侧边栏分组：平台（总览、Azure 账号、代理、账单费用、资源配额）、资源管理（资源组、虚拟机、Foundry、初始化脚本）、运维中心（任务中心、API 访问、API 文档）。当前页高亮。底部 "© 2026 Azure Panel"。
 - 页面头：面包屑 "Azure面板 / X"，下方灰色副标题（各页副标题见下）。
 
 ## 认证
@@ -67,13 +67,6 @@ UI：过滤行：Azure 账号下拉（"全部账户"）、区域下拉（"全部
 - `POST /api/v1/vms/action` `{account_id,resource_group,vm_name,action:start|stop|restart|delete|change_ip}` → `{job_id}`
 UI：过滤行：Azure 账号下拉（"全部账户"）、区域下拉（"全部地区"）、灰色"刷新"、蓝色"+ 创建虚拟机"；"虚拟机"卡（副标题"启动可附带 sh/PowerShell 脚本。更换 IP 会先绑定新地址，再清理 AzureIn 管理的旧地址。"→把 AzureIn 改为"面板"）；表格列：名称、状态、配置、公网 IP、资源组、位置、操作（启动/关机/重启/更换 IP/删除）；空"暂无可访问的虚拟机"。创建弹窗字段：区域（中文名）、规格、镜像、磁盘大小/类型、IP 类型、VM 名、用户名、密码、SSH Key、初始化脚本（从脚本模板选择填入 user_data）、DD 重装开关。
 
-## 防火墙
-副标题："查看和管理每台机器的专用 NSG 规则。"
-- `GET /api/v1/firewall?account_id=` → `[{name,resource_group,location,rules:[{name,priority,direction,access,protocol,src_prefix,src_port,dst_port,description}]}]`
-- `POST /api/v1/firewall/rules` `{account_id,resource_group,nsg_name,name,priority?,direction,access,protocol,src_prefix?,src_port?,dst_port,description?}`
-- `DELETE /api/v1/firewall/rules` `{account_id,resource_group,nsg_name,rule_name}`
-UI：过滤行：Azure 账号下拉（"选择账号"）、虚拟机下拉（"选择机器"）、灰色"刷新"；"NIC NSG 规则"卡（副标题"自定义规则和 Azure 默认规则分开展示。有效规则还会合并子网 NSG。"）；表格列：优先级、名称、方向、动作、协议、源、目标、操作（删除）；空"暂无规则"；"+ 添加规则"按钮。
-
 ## Foundry
 副标题："管理账号、项目、部署和访问密钥。"
 - `GET /api/v1/foundry/regions?account_id=` → `{regions}`
@@ -106,7 +99,7 @@ UI："API 地址"卡：灰色代码框 `https://azure.sijuly.uk/api/v1`，副标
 
 ## API 文档
 副标题："当前角色可访问的接口、参数与调用示例。"
-UI：顶部"OpenAPI 3.2.0"徽章 + 右上"下载 OpenAPI JSON"（链接 `/api/v1/openapi.json`）、"下载 Postman Collection"（可省略或前端生成）；信息横幅；左列搜索"搜索接口名称、路径或说明…" + 分组列表（认证与 Token、Azure 账号、费用、Foundry、配额、资源组、虚拟机、防火墙、任务、代理、脚本、平台）；右列：直接 iframe 嵌入 `/api/v1/docs`（Swagger UI）即可。
+UI：顶部"OpenAPI 3.2.0"徽章 + 右上"下载 OpenAPI JSON"（链接 `/api/v1/openapi.json`）、"下载 Postman Collection"（可省略或前端生成）；信息横幅；左列搜索"搜索接口名称、路径或说明…" + 分组列表（认证与 Token、Azure 账号、费用、Foundry、配额、资源组、虚拟机、任务、代理、脚本、平台）；右列：直接 iframe 嵌入 `/api/v1/docs`（Swagger UI）即可。
 
 ## 通用约定
 - 长耗时操作返回 `{job_id}`，前端提示去任务中心查看并提供跳转。

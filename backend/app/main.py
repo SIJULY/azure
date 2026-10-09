@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import API_PREFIX, BASE_DIR
 from .db import init_db
 from .auth import ensure_admin  # noqa: E402  (ensure_admin 在 init_db 之后调用)
-from .routers import auth, accounts, overview, resource_groups, vms, firewall, billing, quotas, foundry, scripts, proxies, jobs, tokens
+from .routers import auth, accounts, overview, resource_groups, vms, billing, quotas, foundry, scripts, proxies, jobs, tokens
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -25,7 +25,7 @@ app.add_middleware(
 init_db()
 ensure_admin()
 
-for r in (auth, accounts, overview, resource_groups, vms, firewall, billing, quotas, foundry, scripts, proxies, jobs, tokens):
+for r in (auth, accounts, overview, resource_groups, vms, billing, quotas, foundry, scripts, proxies, jobs, tokens):
     app.include_router(r.router, prefix=API_PREFIX)
 
 

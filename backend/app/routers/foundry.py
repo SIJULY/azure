@@ -116,8 +116,6 @@ def foundry_resources(account_id: int = Query(...), refresh: bool = Query(False)
     try:
         if refresh:
             cache_invalidate("_cached_foundry_resources")
-        if refresh:
-            cache_invalidate("_cached_foundry_resources")
         return _cached_foundry_resources(account_id)
     except HTTPException:
         raise
