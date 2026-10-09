@@ -1,7 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
-import { Card, EmptyState, Loading, Select, StatusBadge, Spinner } from "../ui.jsx";
+import { Card, EmptyState, Select, StatusBadge } from "../ui.jsx";
+
+const DEFAULT_OVERVIEW_DATA = {
+  accounts: { total: 0, healthy: 0, error: 0 },
+  resource_groups: { total: 0 },
+  vms: { running: 0, stopped: 0, total: 0 },
+  foundry: { total: 0 },
+  recent_jobs: [],
+};
+
+function normalizeOverviewData(data) {
+  return {
+    accounts: { ...DEFAULT_OVERVIEW_DATA.accounts, ...(data?.accounts || {}) },
+    resource_groups: { ...DEFAULT_OVERVIEW_DATA.resource_groups, ...(data?.resource_groups || {}) },
+    vms: { ...DEFAULT_OVERVIEW_DATA.vms, ...(data?.vms || {}) },
+    foundry: { ...DEFAULT_OVERVIEW_DATA.foundry, ...(data?.foundry || {}) },
+    recent_jobs: data?.recent_jobs || [],
+  };
+}
 
 /* ---------- 小组件 ---------- */
 const DOT = { green: "bg-green-500", red: "bg-red-500", blue: "bg-blue-500", gray: "bg-slate-300", amber: "bg-amber-500" };
@@ -85,7 +103,6 @@ function QuotaCard({ accounts }) {
   const [aid, setAid] = useState("");
   const [region, setRegion] = useState("");
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (healthy.length > 0 && !aid) setAid(String(healthy[0].id));
@@ -93,8 +110,6 @@ function QuotaCard({ accounts }) {
 
   useEffect(() => {
     if (!aid) return;
-    setLoading(true);
-    setData(null);
     api.get(`/quotas?account_id=${aid}`, { timeout: 60000 })
       .then((d) => {
         setData(d);
@@ -102,7 +117,6 @@ function QuotaCard({ accounts }) {
         setRegion(regs[0] || "");
       })
       .catch(() => setData({ vm_quotas: [], error: "读取失败" }))
-      .finally(() => setLoading(false));
   }, [aid]);
 
   const usages = useMemo(() => {
@@ -123,9 +137,7 @@ function QuotaCard({ accounts }) {
           {(data?.vm_quotas || []).map((r) => <option key={r.region} value={r.region}>{r.region}</option>)}
         </Select>
       </div>
-      {loading ? (
-        <div className="py-10 flex items-center justify-center gap-2 text-slate-400 text-[13px]"><Spinner /> 正在从 Azure 读取配额…</div>
-      ) : !aid ? (
+      {!aid ? (
         <p className="text-[13px] text-slate-400 text-center py-8">请选择一个已启用的 Azure 账号</p>
       ) : usages.length === 0 ? (
         <EmptyState text="暂无配额数据" />
@@ -154,27 +166,26 @@ function QuotaCard({ accounts }) {
 
 export default function Overview() {
   const [data, setData] = useState(() => {
-    // 优先显示缓存，秒开
+    // 优先显示缓存；首次无缓存时用默认数据立即渲染页面，接口在后台静默刷新。
     try {
       const c = localStorage.getItem("overview_cache");
-      return c ? JSON.parse(c) : null;
-    } catch { return null; }
+      return c ? normalizeOverviewData(JSON.parse(c)) : DEFAULT_OVERVIEW_DATA;
+    } catch { return DEFAULT_OVERVIEW_DATA; }
   });
-  const [updating, setUpdating] = useState(false);
   const [err, setErr] = useState("");
   const [accounts, setAccounts] = useState([]);
   const [jobs, setJobs] = useState([]);
 
   useEffect(() => {
     // 后台静默更新，不阻塞页面
-    setUpdating(true);
     api.get("/overview").then((d) => {
-      setData(d);
+      setData(normalizeOverviewData(d));
+      setErr("");
       try { localStorage.setItem("overview_cache", JSON.stringify(d)); } catch {}
     }).catch((e) => {
-      // 有缓存时不显示错误，静默失败
-      if (!data) setErr(e.message);
-    }).finally(() => setUpdating(false));
+      // 页面已经可用，失败时只轻量提示，不阻塞总览内容展示。
+      setErr(e.message);
+    });
     api.get("/accounts").then((d) => setAccounts(d.items || [])).catch(() => {});
     api.get("/jobs?limit=5").then(setJobs).catch(() => {});
     // eslint-disable-next-line
@@ -194,17 +205,13 @@ export default function Overview() {
     { t: "0 个配额接近或达到限制", d: "用量已达到或超过配额的 80%", to: "/quotas" },
   ];
 
-  if (err) return (<><Crumb /><p className="text-[13px] text-red-600 mt-4">加载失败：{err}</p></>);
-  // 有缓存直接显示，无缓存才显示加载中（仅首次）
-  if (!data) return (<><Crumb /><Loading /></>);
-
   const v = data.vms || {};
   return (
     <>
       <div className="mb-4 flex items-center gap-2">
         <Crumb />
-        {updating && <span className="text-[11px] text-slate-400">更新中…</span>}
       </div>
+      {err && <p className="text-[12px] text-amber-600 -mt-2 mb-4">当前显示的是本地缓存或默认数据，后台刷新失败：{err}</p>}
       {ctx && (
         <button className="inline-flex items-center gap-1 text-[13px] text-slate-500 -mt-2 mb-4 hover:text-slate-700">
           {ctx}
