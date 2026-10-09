@@ -237,7 +237,11 @@ function RecentJobs({ jobs }) {
 }
 
 function quotaLabel(name) {
-  return QUOTA_NAMES[name] || name || "配额项目";
+  if (QUOTA_NAMES[name]) return QUOTA_NAMES[name];
+  // 动态系列名兜底：standardXxxFamily -> 标准 Xxx 系列 vCPU
+  const m = /^standard(.+)Family$/i.exec(name || "");
+  if (m) return `标准 ${m[1]} 系列 vCPU`;
+  return name || "配额项目";
 }
 
 function QuotaProgress({ q }) {
@@ -301,7 +305,19 @@ function QuotaCard({ accounts }) {
       seen.add(q.name);
       return true;
     });
-    const preferred = ["cores", "totalRegionalVcpus", "standardBpsv2Family", "standardBSFamily", "virtualMachines", "PremiumDiskCount", "availabilitySets", "standardA0_A7Family", "standardDSv3Family", "standardAv2Family", "publicIPAddresses"];
+    // 动态选择有实际用量的系列（不硬编码 Bpsv2/BS）
+    // 找出所有 standard*Family 中 current > 0 的，按用量排序
+    const seriesWithUsage = deduped
+      .filter((q) => /^standard.*Family$/i.test(q.name) && Number(q.current || 0) > 0)
+      .sort((a, b) => Number(b.current || 0) - Number(a.current || 0));
+    const dynamicSeries = seriesWithUsage.length > 0 ? seriesWithUsage[0].name : null;
+
+    // 基础优先级（不含硬编码的系列）
+    const preferred = ["cores", "totalRegionalVcpus", "virtualMachines", "PremiumDiskCount", "availabilitySets", "standardA0_A7Family", "standardDSv3Family", "standardAv2Family", "publicIPAddresses"];
+    // 如果有实际使用的系列，把它插入到第 2 位
+    if (dynamicSeries && !preferred.includes(dynamicSeries)) {
+      preferred.splice(1, 0, dynamicSeries);
+    }
     return deduped
       .sort((a, b) => {
         const ia = preferred.indexOf(a.name), ib = preferred.indexOf(b.name);
