@@ -83,11 +83,6 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
 
     recent_jobs = db.query(Job).order_by(Job.created_at.desc()).limit(8).all()
 
-    previous_data = _overview_cache.get("data") if isinstance(_overview_cache.get("data"), dict) else None
-    previous_foundry_total = ((previous_data or {}).get("foundry") or {}).get("total")
-    if foundry_query_failed and previous_foundry_total is not None:
-        foundry_total = previous_foundry_total
-
     result = {
         "accounts": {"total": len(accounts), "healthy": healthy, "error": error},
         "resource_groups": {"total": total_rg},

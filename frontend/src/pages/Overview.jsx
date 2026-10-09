@@ -10,7 +10,7 @@ const DEFAULT_OVERVIEW_DATA = {
   foundry: { total: 0, partial: false },
   recent_jobs: [],
 };
-const OVERVIEW_CACHE_VERSION = 2;
+const OVERVIEW_CACHE_VERSION = 3;
 
 function readOverviewCache() {
   try {
@@ -200,12 +200,9 @@ export default function Overview() {
     // 后台静默更新，不阻塞页面
     api.get("/overview?refresh=true").then((d) => {
       const next = normalizeOverviewData(d);
-      setData((prev) => {
-        const merged = next.foundry.partial
-          ? { ...next, foundry: { ...next.foundry, total: prev?.foundry?.total || 0 } }
-          : next;
-        writeOverviewCache(merged);
-        return merged;
+      setData(() => {
+        writeOverviewCache(next);
+        return next;
       });
       setErr("");
     }).catch((e) => {
