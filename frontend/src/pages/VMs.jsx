@@ -202,22 +202,37 @@ export default function VMs() {
     api.get("/accounts").then((d) => setAccounts(d.items || [])).catch(() => {});
   }, []);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (force = false) => {
+    if (!force) setLoading(true);
     try {
       const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
       const all = [];
       for (const id of ids) {
         try {
-          const d = await api.get(`/vms?account_id=${id}`);
+          const suffix = force ? "&refresh=true" : "";
+          const d = await api.get(`/vms?account_id=${id}${suffix}`);
           const a = accounts.find((x) => x.id === id);
           (d.vms || []).forEach((v) => all.push({ ...v, _aid: id, _alias: a?.alias || "" }));
         } catch { /* skip */ }
       }
-      setVms(all);
-    } finally { setLoading(false); }
+      setVms((prev) => {
+        // 静默更新：数据有变化才更新，避免闪烁
+        try {
+          if (JSON.stringify(prev) !== JSON.stringify(all)) return all;
+        } catch { /* ignore */ }
+        return prev;
+      });
+    } finally { if (!force) setLoading(false); }
   };
-  useEffect(() => { if (accounts.length) load(); /* eslint-disable-next-line */ }, [accounts, accountId]);
+  useEffect(() => {
+    if (accounts.length) {
+      load(false);  // 立即显示缓存
+      // 后台静默拉取最新
+      const t = setTimeout(() => load(true), 1000);
+      return () => clearTimeout(t);
+    }
+    /* eslint-disable-next-line */
+  }, [accounts, accountId]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -270,7 +285,7 @@ export default function VMs() {
           </Select>
         </Field>
         <div className="flex-1" />
-        <Btn variant="secondary" onClick={load} disabled={loading}>{loading ? "刷新中" : "刷新"}</Btn>
+        <Btn variant="secondary" onClick={() => load(true)} disabled={loading}>{loading ? "刷新中" : "刷新"}</Btn>
         <Btn onClick={() => setCreateOpen(true)}>创建虚拟机</Btn>
       </div>
 

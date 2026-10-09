@@ -52,7 +52,7 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
     return result
 
 
-@cached(ttl=90)
+@cached(ttl=600, validate=lambda d: bool(d.get("quota_tier")))
 def _cached_quotas(account_id: int) -> dict:
     from ..azure_svc import SessionLocal
     db = SessionLocal()
@@ -63,8 +63,10 @@ def _cached_quotas(account_id: int) -> dict:
 
 
 @router.get("")
-def quotas(account_id: int = Query(...), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def quotas(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     try:
+        if refresh:
+            cache_invalidate("_cached_quotas")
         return _cached_quotas(account_id)
     except HTTPException:
         raise

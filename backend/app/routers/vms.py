@@ -71,7 +71,7 @@ def _do_list_vms(account_id: int) -> dict:
         db.close()
 
 
-@cached(ttl=60)
+@cached(ttl=600)
 def _cached_vms(account_id: int) -> dict:
     return _do_list_vms(account_id)
 
@@ -101,8 +101,12 @@ class VmActionIn(BaseModel):
 
 
 @router.get("")
-def list_vms(account_id: int = Query(...), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def list_vms(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     try:
+        if refresh:
+            cache_invalidate("_cached_vms")
+        if refresh:
+            cache_invalidate("_cached_vms")
         return _cached_vms(account_id)
     except HTTPException:
         raise

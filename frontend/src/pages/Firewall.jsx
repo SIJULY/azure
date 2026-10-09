@@ -26,20 +26,36 @@ export default function Firewall() {
     }).catch(() => {});
   }, []);
 
-  const load = async () => {
+  const load = async (force = false) => {
     if (!accountId) return;
-    setLoading(true);
+    if (!force) setLoading(true);
     try {
+      const suffix = force ? "&refresh=true" : "";
       const [n, v] = await Promise.all([
-        api.get(`/firewall?account_id=${accountId}`),
-        api.get(`/vms?account_id=${accountId}`).catch(() => ({ vms: [] })),
+        api.get(`/firewall?account_id=${accountId}${suffix}`),
+        api.get(`/vms?account_id=${accountId}${suffix}`).catch(() => ({ vms: [] })),
       ]);
-      setNsgs(n || []);
-      setVms(v.vms || []);
-    } catch (e) { toast("加载失败：" + e.message); }
-    finally { setLoading(false); }
+      setNsgs((prev) => {
+        try { if (JSON.stringify(prev) !== JSON.stringify(n || [])) return n || []; } catch {}
+        return prev;
+      });
+      setVms((prev) => {
+        const nv = v.vms || [];
+        try { if (JSON.stringify(prev) !== JSON.stringify(nv)) return nv; } catch {}
+        return prev;
+      });
+    } catch (e) { if (!force) toast("加载失败：" + e.message); }
+    finally { if (!force) setLoading(false); }
   };
-  useEffect(() => { if (accountId) { setVmName(vmParam); load(); } /* eslint-disable-next-line */ }, [accountId]);
+  useEffect(() => {
+    if (accountId) {
+      setVmName(vmParam);
+      load(false);
+      const t = setTimeout(() => load(true), 1000);
+      return () => clearTimeout(t);
+    }
+    /* eslint-disable-next-line */
+  }, [accountId]);
 
   const vm = useMemo(() => vms.find((x) => x.name === vmName), [vms, vmName]);
 
@@ -86,7 +102,7 @@ export default function Firewall() {
           </Select>
         </Field>
         <div className="flex-1" />
-        <Btn variant="secondary" onClick={load} disabled={loading}>{loading ? "刷新中" : "刷新"}</Btn>
+        <Btn variant="secondary" onClick={() => load(true)} disabled={loading}>{loading ? "刷新中" : "刷新"}</Btn>
       </div>
 
       <Card title="网络安全组作用域" className="mb-4">

@@ -94,24 +94,35 @@ export default function ResourceGroups() {
     }).catch(() => {});
   }, []);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (force = false) => {
+    if (!force) setLoading(true);
     try {
       const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
       const all = [];
       for (const id of ids) {
         try {
-          const r = await api.get(`/resource-groups?account_id=${id}`);
+          const suffix = force ? "&refresh=true" : "";
+          const r = await api.get(`/resource-groups?account_id=${id}${suffix}`);
           const a = accounts.find((x) => x.id === id);
           (r || []).forEach((x) => all.push({ ...x, _alias: a?.alias || "", _aid: id, _sub: a?.subscription_id || "" }));
         } catch { /* skip */ }
       }
-      setItems(all);
-    } catch (e) { toast("加载失败：" + e.message); }
-    finally { setLoading(false); }
+      setItems((prev) => {
+        try { if (JSON.stringify(prev) !== JSON.stringify(all)) return all; } catch {}
+        return prev;
+      });
+    } catch (e) { if (!force) toast("加载失败：" + e.message); }
+    finally { if (!force) setLoading(false); }
   };
 
-  useEffect(() => { if (accounts.length) load(); /* eslint-disable-next-line */ }, [accounts, accountId]);
+  useEffect(() => {
+    if (accounts.length) {
+      load(false);
+      const t = setTimeout(() => load(true), 1000);
+      return () => clearTimeout(t);
+    }
+    /* eslint-disable-next-line */
+  }, [accounts, accountId]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -153,7 +164,7 @@ export default function ResourceGroups() {
           </Select>
         </Field>
         <div className="flex-1" />
-        <Btn variant="secondary" onClick={load} disabled={loading}>{loading ? "刷新中" : "刷新"}</Btn>
+        <Btn variant="secondary" onClick={() => load(true)} disabled={loading}>{loading ? "刷新中" : "刷新"}</Btn>
         <Btn onClick={() => setCreateOpen(true)}>创建资源组</Btn>
       </div>
 

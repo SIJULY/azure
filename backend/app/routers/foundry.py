@@ -1,10 +1,10 @@
-"""Foundry：区域 / 模型可用性 / 创建 AI Services 资源 / 部署模型。"""
+"""Foundry：区域 / 模型可用性 / 创建 AI Services 资源 / 部署模型。资源列表带 90 秒缓存。"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import AzureAccount, User
-from ..azure_svc import get_manager, proxy_env
+from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache_invalidate
 from ..jobs import create_job, run_in_background
 
 router = APIRouter(prefix="/foundry", tags=["Foundry"])
@@ -65,17 +65,21 @@ def foundry_models(account_id: int = Query(...), db: Session = Depends(get_db), 
         raise HTTPException(400, f"获取模型列表失败：{e}")
 
 
-@router.get("/resources")
-def foundry_resources(account_id: int = Query(...), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def _do_foundry_resources(account_id: int) -> list:
+    from ..azure_svc import SessionLocal
+    db = SessionLocal()
     try:
         mgr, _a = get_manager(account_id, db)
     except Exception as e:
-        raise HTTPException(400, str(e))
+        db.close()
+        raise RuntimeError(str(e))
     try:
         from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
         with proxy_env(_a):
             cs = CognitiveServicesManagementClient(mgr.credential, mgr.subscription_id)
-            accounts = list(cs.accounts.list())
+            accounts = call_with_timeout(
+                lambda: list(cs.accounts.list()),
+                timeout=20, timeout_msg="Foundry 资源查询超时")
         return [
             {
                 "name": a.name,
@@ -86,6 +90,25 @@ def foundry_resources(account_id: int = Query(...), db: Session = Depends(get_db
             }
             for a in accounts
         ]
+    finally:
+        db.close()
+
+
+@cached(ttl=600)
+def _cached_foundry_resources(account_id: int) -> list:
+    return _do_foundry_resources(account_id)
+
+
+@router.get("/resources")
+def foundry_resources(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+    try:
+        if refresh:
+            cache_invalidate("_cached_foundry_resources")
+        if refresh:
+            cache_invalidate("_cached_foundry_resources")
+        return _cached_foundry_resources(account_id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(400, f"获取 Foundry 资源失败：{e}")
 

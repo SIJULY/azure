@@ -18,8 +18,9 @@ _cache = {}
 import time as _time
 
 
-def cached(ttl=90):
-    """装饰器：缓存函数返回值 ttl 秒。key 由函数名+参数生成。"""
+def cached(ttl=90, validate=None):
+    """装饰器：缓存函数返回值 ttl 秒。key 由函数名+参数生成。
+    validate: 可选验证函数，返回 False 则不缓存（用于避免缓存空/失败结果）。"""
     def deco(fn):
         def wrapper(*args, **kwargs):
             key = (fn.__name__, str(args), str(sorted(kwargs.items())))
@@ -29,10 +30,12 @@ def cached(ttl=90):
                 if now < exp:
                     return data
             data = fn(*args, **kwargs)
-            _cache[key] = (now + ttl, data)
-            # 防止内存无限增长
-            if len(_cache) > 500:
-                _cache.clear()
+            # 验证通过才缓存
+            if validate is None or validate(data):
+                _cache[key] = (now + ttl, data)
+                # 防止内存无限增长
+                if len(_cache) > 500:
+                    _cache.clear()
             return data
         return wrapper
     return deco

@@ -1,12 +1,51 @@
-"""资源组：列表 / 创建。"""
+"""资源组：列表 / 创建。列表带 60 秒缓存。"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import User
-from ..azure_svc import get_manager, proxy_env, call_with_timeout
+from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache_invalidate
 
 router = APIRouter(prefix="/resource-groups", tags=["资源组"])
+
+
+def _do_list_rgs(account_id: int) -> list:
+    from ..azure_svc import SessionLocal
+    db = SessionLocal()
+    try:
+        mgr, acct = get_manager(account_id, db)
+    except Exception as e:
+        db.close()
+        raise RuntimeError(str(e))
+    try:
+        with proxy_env(acct):
+            rgs = call_with_timeout(
+                lambda: list(mgr.resource_client.resource_groups.list()),
+                timeout=20, timeout_msg="资源组查询超时")
+            try:
+                vm_count = {}
+                vms = call_with_timeout(
+                    lambda: list(mgr.compute_client.virtual_machines.list_all()),
+                    timeout=15, timeout_msg="VM 列表查询超时")
+                for vm in vms:
+                    m = vm.id or ""
+                    rg = m.split("/resourceGroups/")[1].split("/")[0] if "/resourceGroups/" in m else ""
+                    if rg:
+                        vm_count[rg] = vm_count.get(rg, 0) + 1
+            except Exception:
+                vm_count = {}
+            return [
+                {"name": rg.name, "location": rg.location,
+                 "tags": dict(rg.tags or {}), "vm_count": vm_count.get(rg.name, 0)}
+                for rg in rgs
+            ]
+    finally:
+        db.close()
+
+
+@cached(ttl=600)
+def _cached_rgs(account_id: int) -> list:
+    return _do_list_rgs(account_id)
 
 
 class RgCreate(BaseModel):
@@ -17,33 +56,13 @@ class RgCreate(BaseModel):
 
 
 @router.get("")
-def list_resource_groups(account_id: int = Query(...), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def list_resource_groups(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     try:
-        mgr, acct = get_manager(account_id, db)
-    except Exception as e:
-        raise HTTPException(400, str(e))
-    try:
-        with proxy_env(acct):
-            rgs = list(mgr.resource_client.resource_groups.list())
-            # 统计每个 RG 下的 VM 数量（轻量，只取 id 解析 RG）
-            try:
-                vm_count = {}
-                for vm in mgr.compute_client.virtual_machines.list_all():
-                    m = vm.id or ""
-                    rg = m.split("/resourceGroups/")[1].split("/")[0] if "/resourceGroups/" in m else ""
-                    if rg:
-                        vm_count[rg] = vm_count.get(rg, 0) + 1
-            except Exception:
-                vm_count = {}
-            return [
-                {
-                    "name": rg.name,
-                    "location": rg.location,
-                    "tags": dict(rg.tags or {}),
-                    "vm_count": vm_count.get(rg.name, 0),
-                }
-                for rg in rgs
-            ]
+        if refresh:
+            cache_invalidate("_cached_rgs")
+        if refresh:
+            cache_invalidate("_cached_rgs")
+        return _cached_rgs(account_id)
     except HTTPException:
         raise
     except Exception as e:
@@ -75,6 +94,7 @@ def create_resource_group(data: RgCreate, db: Session = Depends(get_db), _u: Use
                 lambda: mgr.resource_client.resource_groups.create_or_update(
                     data.name.strip(), {"location": data.location.strip(), "tags": tag_dict}),
                 timeout=30, timeout_msg="创建资源组超时")
+        cache_invalidate("_cached_rgs")
         return {"ok": True, "name": rg.name, "location": rg.location}
     except HTTPException:
         raise

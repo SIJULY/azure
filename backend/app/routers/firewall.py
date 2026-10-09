@@ -1,10 +1,10 @@
-"""防火墙：NSG（网络安全组）规则的查看 / 添加 / 删除。"""
+"""防火墙：NSG（网络安全组）规则的查看 / 添加 / 删除。列表带 60 秒缓存。"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import User
-from ..azure_svc import get_manager, proxy_env
+from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache_invalidate
 
 router = APIRouter(prefix="/firewall", tags=["防火墙"])
 
@@ -53,15 +53,19 @@ def _rule_out(r) -> dict:
     }
 
 
-@router.get("")
-def list_nsgs(account_id: int = Query(...), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def _do_list_nsgs(account_id: int) -> list:
+    from ..azure_svc import SessionLocal
+    db = SessionLocal()
     try:
         mgr, acct = get_manager(account_id, db)
     except Exception as e:
-        raise HTTPException(400, str(e))
+        db.close()
+        raise RuntimeError(str(e))
     try:
         with proxy_env(acct):
-            nsgs = list(mgr.network_client.network_security_groups.list_all())
+            nsgs = call_with_timeout(
+                lambda: list(mgr.network_client.network_security_groups.list_all()),
+                timeout=20, timeout_msg="NSG 查询超时")
             out = []
             for nsg in nsgs:
                 parts = (nsg.id or "").split("/")
@@ -73,6 +77,25 @@ def list_nsgs(account_id: int = Query(...), db: Session = Depends(get_db), _u: U
                     "rules": [_rule_out(r) for r in (nsg.security_rules or [])],
                 })
             return out
+    finally:
+        db.close()
+
+
+@cached(ttl=600)
+def _cached_nsgs(account_id: int) -> list:
+    return _do_list_nsgs(account_id)
+
+
+@router.get("")
+def list_nsgs(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+    try:
+        if refresh:
+            cache_invalidate("_cached_nsgs")
+        if refresh:
+            cache_invalidate("_cached_nsgs")
+        return _cached_nsgs(account_id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(400, f"获取 NSG 列表失败：{e}")
 
@@ -106,6 +129,7 @@ def add_rule(data: NsgRuleIn, db: Session = Depends(get_db), _u: User = Depends(
                 data.resource_group, data.nsg_name, data.name, params
             )
             poller.result()
+        cache_invalidate("_cached_nsgs")
         return {"ok": True}
     except Exception as e:
         raise HTTPException(400, f"添加规则失败：{e}")
@@ -123,6 +147,7 @@ def delete_rule(data: NsgRuleDel, db: Session = Depends(get_db), _u: User = Depe
                 data.resource_group, data.nsg_name, data.rule_name
             )
             poller.result()
+        cache_invalidate("_cached_nsgs")
         return {"ok": True}
     except Exception as e:
         raise HTTPException(400, f"删除规则失败：{e}")
