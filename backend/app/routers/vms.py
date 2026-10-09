@@ -80,6 +80,7 @@ class VmCreateIn(BaseModel):
     account_id: int
     region: str
     vm_size: str
+    resource_group: str = ""
     os_image: str = ""
     os_image_data: dict | None = None
     disk_size_gb: int = 64
@@ -181,47 +182,6 @@ def _do_vm_meta(account_id: int, region: str) -> dict:
 
 
 @cached(ttl=600, validate=lambda d: d.get("_fetch_ok", False))
-def _cached_vms(account_id: int) -> dict:
-    return _do_list_vms(account_id)
-
-
-class VmCreateIn(BaseModel):
-    account_id: int
-    region: str
-    vm_size: str
-    os_image: str = ""
-    os_image_data: dict | None = None
-    disk_size_gb: int = 64
-    disk_type: str = "Premium_LRS"
-    ip_type: str = "Static"
-    vm_name: str = ""
-    username: str = ""
-    password: str = ""
-    ssh_key: str = ""
-    user_data: str = ""
-    dd_system: bool = False
-
-
-class VmActionIn(BaseModel):
-    account_id: int
-    resource_group: str
-    vm_name: str
-    action: str  # start | stop | restart | delete | change_ip
-
-
-@router.get("")
-def list_vms(account_id: int, refresh: bool = False, db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
-    try:
-        if refresh:
-            cache_invalidate("_cached_vms")
-        return _cached_vms(account_id)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(400, f"获取虚拟机列表失败：{e}")
-
-
-@router.get("/meta")
 def _cached_vm_meta(account_id: int, region: str) -> dict:
     return _do_vm_meta(account_id, region)
 
@@ -263,6 +223,8 @@ def create_vm(data: VmCreateIn, db: Session = Depends(get_db), _u: User = Depend
         raise HTTPException(404, "账号不存在")
     payload = data.model_dump()
     payload.pop("account_id")
+    payload["custom_username"] = payload.get("username") or ""
+    payload["custom_password"] = payload.get("password") or ""
     job_id = create_job("create_vm", f"创建虚拟机 ({data.region} / {data.vm_size})", data.account_id)
     run_in_background(job_id, _do_create_vm, data.account_id, payload)
     return {"job_id": job_id}

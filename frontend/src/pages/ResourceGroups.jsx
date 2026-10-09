@@ -135,9 +135,17 @@ export default function ResourceGroups() {
 
   const regions = useMemo(() => [...new Set(items.map((r) => r.location).filter(Boolean))], [items]);
 
-  const doDelete = () => {
+  const doDelete = async () => {
+    const target = del;
     setDel(null);
-    toast("删除资源组功能开发中");
+    if (!target) return;
+    try {
+      await api.post("/resource-groups/delete", { account_id: target._aid, name: target.name }, { timeout: 150000 });
+      toast("资源组删除任务已提交");
+      load(true);
+    } catch (e) {
+      toast("删除失败：" + e.message);
+    }
   };
 
   return (

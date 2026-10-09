@@ -1574,7 +1574,7 @@ class AzureManager:
         
         timestamp = int(time.time())
         vm_name = vm_name_input if vm_name_input else f"vm-{region.replace(' ', '').lower()}-{timestamp}"
-        rg_name = f"rg-{vm_name}"
+        rg_name = (data.get('resource_group') or '').strip() or f"rg-{vm_name}"
         
         target_username = custom_username if custom_username else "root"
         
