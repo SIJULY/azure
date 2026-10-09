@@ -178,6 +178,7 @@ function CreateModal({ accounts, onClose, onSaved }) {
 const ACTS = [
   { k: "start", t: "开机" },
   { k: "stop", t: "关机释放" },
+  { k: "restart", t: "重启" },
   { k: "change_ip", t: "更换 IP" },
   { k: "ipv6", t: "添加 IPv6" },
   { k: "reinstall", t: "重装系统" },
