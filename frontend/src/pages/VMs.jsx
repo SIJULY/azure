@@ -50,12 +50,25 @@ function CreateModal({ accounts, onClose, onSaved }) {
       .catch(() => {});
   }, [f.account_id]);
 
+  // CloudManager 同款：只显示 3 个免费试用规格（需该区域实际支持）
+  const COMMON_VM_SIZES = [
+    ["Standard_B1s", "Standard_B1s (有资格免费试用服务)"],
+    ["Standard_B2ats_v2", "Standard_B2ats_v2 (基于 AMD, 有资格免费试用服务)"],
+    ["Standard_B2pts_v2", "Standard_B2pts_v2 (基于 ARM, 有资格免费试用服务)"],
+  ];
+  const [allowCustomSize, setAllowCustomSize] = useState(false);
+
   useEffect(() => {
     if (!f.account_id || !f.region) { setSizes([]); return; }
     setSizesBusy(true);
+    setAllowCustomSize(false);
     api.get(`/vms/meta?account_id=${f.account_id}&region=${f.region}`)
       .then((d) => {
-        setSizes(d.vm_sizes || []);
+        const allSizes = d.vm_sizes || [];
+        // 只保留 3 个免费规格中该区域实际支持的
+        const filtered = COMMON_VM_SIZES.filter(([name]) => allSizes.includes(name));
+        setSizes(filtered);
+        setAllowCustomSize(filtered.length === 0);
         setMarketImages(d.os_images || []);
       })
       .catch((e) => setErr(e.message))
@@ -115,10 +128,14 @@ function CreateModal({ accounts, onClose, onSaved }) {
           </Select>
         </Field>
         <Field label="规格" required className="col-span-2">
-          <Select value={f.vm_size} onChange={(e) => setF({ ...f, vm_size: e.target.value })} disabled={sizesBusy}>
-            <option value="">{sizesBusy ? "正在读取可用机型…" : "请选择"}</option>
-            {sizes.map((s) => <option key={s} value={s}>{s}</option>)}
-          </Select>
+          {allowCustomSize ? (
+            <Input value={f.vm_size} placeholder="当前区域不支持免费规格，请手动输入，如 Standard_D2s_v3" onChange={(e) => setF({ ...f, vm_size: e.target.value })} />
+          ) : (
+            <Select value={f.vm_size} onChange={(e) => setF({ ...f, vm_size: e.target.value })} disabled={sizesBusy}>
+              <option value="">{sizesBusy ? "正在读取可用机型…" : "请选择"}</option>
+              {sizes.map(([name, label]) => <option key={name} value={name}>{label}</option>)}
+            </Select>
+          )}
         </Field>
       </div>
 
