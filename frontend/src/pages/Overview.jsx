@@ -166,6 +166,28 @@ function jobResource(job) {
   return (job.id || "").slice(0, 12) || "—";
 }
 
+// 操作类型中文映射（对标 AzureIn）
+const JOB_TYPE_NAMES = {
+  account_test: "Azure 账号",
+  auth_login: "登录",
+  vm_create: "虚拟机",
+  vm_action: "虚拟机",
+  foundry_create: "Foundry",
+  foundry_deploy: "Foundry",
+  proxy_test: "代理",
+  quota_check: "资源配额",
+};
+
+function jobTypeName(j) {
+  if (JOB_TYPE_NAMES[j.type]) return JOB_TYPE_NAMES[j.type];
+  const t = (j.type || "").toLowerCase();
+  if (t.includes("foundry")) return "Foundry";
+  if (t.includes("vm")) return "虚拟机";
+  if (t.includes("account")) return "Azure 账号";
+  if (t.includes("proxy")) return "代理";
+  return j.type || "Azure";
+}
+
 function RecentJobs({ jobs }) {
   return (
     <Panel
@@ -180,13 +202,12 @@ function RecentJobs({ jobs }) {
         <div className="px-7 py-10"><EmptyState icon="📋" text="暂无任务" /></div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-[14px]">
+          <table className="w-full min-w-[720px] text-left text-[14px]">
             <thead>
               <tr className="border-b border-slate-100 text-slate-500">
                 <th className="px-7 py-4 font-semibold">开始时间</th>
                 <th className="px-5 py-4 font-semibold">操作</th>
                 <th className="px-5 py-4 font-semibold">资源</th>
-                <th className="px-5 py-4 font-semibold">操作人</th>
                 <th className="px-7 py-4 font-semibold">状态</th>
               </tr>
             </thead>
@@ -207,9 +228,8 @@ function RecentJobs({ jobs }) {
                   </td>
                   <td className="px-5 py-5">
                     <div className="font-mono text-[13px] font-semibold text-slate-950">{jobResource(j)}</div>
-                    <div className="mt-1 text-slate-500">{j.type || "Azure"}</div>
+                    <div className="mt-1 text-slate-500">{jobTypeName(j)}</div>
                   </td>
-                  <td className="px-5 py-5 text-slate-500">{j.operator || "系统"}</td>
                   <td className="px-7 py-5"><StatusBadge status={j.status} /></td>
                 </tr>
               ))}
