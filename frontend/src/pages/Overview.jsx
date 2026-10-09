@@ -11,6 +11,8 @@ const DEFAULT_OVERVIEW_DATA = {
   recent_jobs: [],
 };
 
+const DEFAULT_SUBSCRIPTION_TITLE = "Azure for Students";
+
 function normalizeOverviewData(data) {
   return {
     accounts: { ...DEFAULT_OVERVIEW_DATA.accounts, ...(data?.accounts || {}) },
@@ -173,7 +175,13 @@ export default function Overview() {
     } catch { return DEFAULT_OVERVIEW_DATA; }
   });
   const [err, setErr] = useState("");
-  const [accounts, setAccounts] = useState([]);
+  const [accounts, setAccounts] = useState(() => {
+    try {
+      const c = localStorage.getItem("accounts_cache");
+      const items = c ? JSON.parse(c) : [];
+      return Array.isArray(items) ? items : [];
+    } catch { return []; }
+  });
   const [jobs, setJobs] = useState([]);
 
   useEffect(() => {
@@ -186,13 +194,24 @@ export default function Overview() {
       // 页面已经可用，失败时只轻量提示，不阻塞总览内容展示。
       setErr(e.message);
     });
-    api.get("/accounts").then((d) => setAccounts(d.items || [])).catch(() => {});
+    api.get("/accounts").then((d) => {
+      const items = d.items || [];
+      setAccounts(items);
+      try { localStorage.setItem("accounts_cache", JSON.stringify(items)); } catch {}
+      const firstHealthy = items.find((a) => a.status === "healthy");
+      if (firstHealthy?.subscription_name) {
+        try { localStorage.setItem("overview_subscription_title", firstHealthy.subscription_name); } catch {}
+      }
+    }).catch(() => {});
     api.get("/jobs?limit=5").then(setJobs).catch(() => {});
     // eslint-disable-next-line
   }, []);
 
   const firstHealthy = accounts.find((a) => a.status === "healthy");
-  const ctx = firstHealthy?.subscription_name ? firstHealthy.subscription_name : "";
+  const ctx = firstHealthy?.subscription_name || (() => {
+    try { return localStorage.getItem("overview_subscription_title") || DEFAULT_SUBSCRIPTION_TITLE; }
+    catch { return DEFAULT_SUBSCRIPTION_TITLE; }
+  })();
 
   const needReview = jobs.filter((j) => j.status === "pending").length;
   const failed = jobs.filter((j) => j.status === "failed").length;
@@ -212,14 +231,12 @@ export default function Overview() {
         <Crumb />
       </div>
       {err && <p className="text-[12px] text-amber-600 -mt-2 mb-4">当前显示的是本地缓存或默认数据，后台刷新失败：{err}</p>}
-      {ctx && (
-        <button className="inline-flex items-center gap-1 text-[13px] text-slate-500 -mt-2 mb-4 hover:text-slate-700">
-          {ctx}
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      )}
+      <button className="inline-flex items-center gap-1 text-[13px] text-slate-500 -mt-2 mb-4 hover:text-slate-700">
+        {ctx}
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
       <div className="space-y-4">
         <Card title="资源概览">
           <div className="flex gap-4 flex-wrap">
