@@ -1,4 +1,4 @@
-export const OVERVIEW_CACHE_VERSION = 5;
+export const OVERVIEW_CACHE_VERSION = 6;
 export const OVERVIEW_UPDATED_EVENT = "azure-panel-overview-updated";
 
 const OVERVIEW_CACHE_KEY = "overview_cache";
@@ -7,7 +7,7 @@ const DEFAULT_OVERVIEW_DATA = {
   accounts: { total: 0, healthy: 0, error: 0 },
   resource_groups: { total: 0 },
   vms: { running: 0, stopped: 0, total: 0 },
-  foundry: { total: 0, resources_total: 0, partial: false },
+  foundry: { total: 0, resources_total: 0, accounts_total: 0, partial: false },
   recent_jobs: [],
 };
 
@@ -74,5 +74,5 @@ export function publishVmOverview(vms) {
 export function publishFoundryOverview(resources) {
   const list = Array.isArray(resources) ? resources : [];
   const accountIds = new Set(list.map((r) => r._aid).filter((id) => id !== undefined && id !== null && id !== ""));
-  mergeOverviewCache({ foundry: { total: accountIds.size, resources_total: list.length, partial: false } });
+  mergeOverviewCache({ foundry: { total: list.length, resources_total: list.length, accounts_total: accountIds.size, partial: false } });
 }

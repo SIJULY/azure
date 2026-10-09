@@ -11,10 +11,10 @@ function Dot({ c }) {
 }
 
 function IconTile({ color, d }) {
-  const bg = { blue: "bg-blue-100 text-blue-600", teal: "bg-teal-100 text-teal-600", purple: "bg-purple-100 text-purple-600", orange: "bg-orange-100 text-orange-600" }[color] || "bg-slate-100 text-slate-500";
+  const bg = { blue: "bg-blue-50 text-blue-600 border-blue-100", teal: "bg-cyan-50 text-cyan-600 border-cyan-100", purple: "bg-purple-50 text-purple-600 border-purple-100", orange: "bg-orange-50 text-orange-500 border-orange-100" }[color] || "bg-slate-50 text-slate-500 border-slate-100";
   return (
-    <span className={`w-8 h-8 rounded-lg inline-flex items-center justify-center shrink-0 ${bg}`}>
-      <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+    <span className={`w-10 h-10 rounded-xl inline-flex items-center justify-center shrink-0 border ${bg}`}>
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d={d} />
       </svg>
     </span>
@@ -30,21 +30,38 @@ const ICONS = {
 
 function StatCard({ to, color, icon, title, big, rows }) {
   return (
-    <Link to={to} className="bg-white border border-slate-200 rounded-xl p-4 flex-1 min-w-[200px] hover:border-blue-300 hover:shadow-sm transition block">
-      <div className="flex items-center gap-2 mb-2">
+    <Link to={to} className="bg-white border border-slate-200 rounded-2xl px-5 py-5 flex-1 min-w-[240px] hover:border-blue-300 hover:shadow-sm transition block">
+      <div className="flex items-center gap-3 mb-5">
         <IconTile color={color} d={ICONS[icon]} />
-        <span className="text-[13px] text-slate-500">{title}</span>
+        <span className="text-[17px] font-semibold text-slate-950">{title}</span>
       </div>
-      <div className="text-[28px] font-bold text-slate-900 mb-2">{big}</div>
-      <div className="space-y-1">
+      <div className="text-[34px] leading-none font-bold text-slate-950 mb-5">{big}</div>
+      <div className="space-y-2">
         {rows.map((r, i) => (
-          <div key={i} className="flex items-center gap-2 text-[12px] text-slate-500">
-            <Dot c={r.c} /> {r.t}
+          <div key={i} className="flex items-center justify-between gap-4 text-[13px] text-slate-500">
+            <span className="inline-flex items-center gap-2 min-w-0"><Dot c={r.c} /> <span className="truncate">{r.t}</span></span>
+            <span className="font-medium text-slate-500 tabular-nums">{r.n}</span>
           </div>
         ))}
       </div>
     </Link>
   );
+}
+
+const REGION_LABEL = "East Asia";
+
+function shortId(value) {
+  const s = String(value || "");
+  return s.length > 12 ? `${s.slice(0, 8)}…` : s;
+}
+
+function jobResourceType(type) {
+  const t = String(type || "");
+  if (t.includes("vm")) return "虚拟机";
+  if (t.includes("foundry")) return "Foundry";
+  if (t.includes("proxy")) return "代理";
+  if (t.includes("account")) return "Azure 账号";
+  return t || "任务";
 }
 
 function ChevronR() {
@@ -84,7 +101,7 @@ function Crumb() {
 function QuotaCard({ accounts }) {
   const healthy = useMemo(() => accounts.filter((a) => a.status === "healthy"), [accounts]);
   const [aid, setAid] = useState("");
-  const [region, setRegion] = useState("");
+  const [region, setRegion] = useState("eastasia");
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -97,7 +114,7 @@ function QuotaCard({ accounts }) {
       .then((d) => {
         setData(d);
         const regs = (d.vm_quotas || []).map((r) => r.region);
-        setRegion(regs[0] || "");
+        setRegion(regs.includes("eastasia") ? "eastasia" : (regs[0] || ""));
       })
       .catch(() => setData({ vm_quotas: [], error: "读取失败" }))
   }, [aid]);
@@ -196,7 +213,7 @@ export default function Overview() {
     try { return localStorage.getItem("overview_subscription_title") || ""; }
     catch { return ""; }
   })();
-  const ctx = firstHealthy?.subscription_name || cachedSubscriptionTitle;
+  const ctx = [firstHealthy?.subscription_name || cachedSubscriptionTitle || firstHealthy?.alias, REGION_LABEL].filter(Boolean).join(" · ");
 
   const needReview = jobs.filter((j) => j.status === "pending").length;
   const failed = jobs.filter((j) => j.status === "failed").length;
@@ -211,6 +228,7 @@ export default function Overview() {
 
   const v = data.vms || {};
   const foundryResourcesTotal = data.foundry.resources_total ?? data.foundry.total ?? 0;
+  const foundryAccountTotal = data.foundry.accounts_total ?? data.foundry.total ?? 0;
   return (
     <>
       <div className="mb-4 flex items-center gap-2">
@@ -227,19 +245,20 @@ export default function Overview() {
           </button>
         )}
       </div>
-      <div className="space-y-4">
-        <Card title="资源概览">
-          <div className="flex gap-4 flex-wrap">
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-[18px] font-semibold text-slate-950 mb-5">资源概览</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <StatCard to="/accounts" color="blue" icon="account" title="Azure 账号" big={data.accounts.total}
-              rows={[{ c: "green", t: `运行正常 ${data.accounts.healthy}` }, { c: "gray", t: `需要处理 ${data.accounts.error}` }]} />
+              rows={[{ c: "green", t: "运行正常", n: data.accounts.healthy }, { c: "gray", t: "需要处理", n: data.accounts.error }]} />
             <StatCard to="/resource-groups" color="teal" icon="rg" title="资源组" big={data.resource_groups.total}
-              rows={[{ c: "green", t: `运行正常 ${data.resource_groups.total}` }, { c: "amber", t: "需要处理 0" }]} />
+              rows={[{ c: "green", t: "运行正常", n: data.resource_groups.total }, { c: "amber", t: "需要处理", n: 0 }]} />
             <StatCard to="/virtual-machines" color="purple" icon="vm" title="虚拟机" big={v.total || 0}
-              rows={[{ c: "green", t: `运行中 ${v.running || 0}` }, { c: "gray", t: `已停止 ${v.stopped || 0}` }]} />
-            <StatCard to="/foundry" color="orange" icon="foundry" title="Foundry" big={data.foundry.total}
-              rows={[{ c: "green", t: `Foundry 账号 ${data.foundry.total}` }, { c: "gray", t: `资源 ${foundryResourcesTotal}` }]} />
+              rows={[{ c: "green", t: "运行中", n: v.running || 0 }, { c: "gray", t: "已停止", n: v.stopped || 0 }]} />
+            <StatCard to="/foundry" color="orange" icon="foundry" title="Foundry" big={foundryResourcesTotal}
+              rows={[{ c: "green", t: "运行正常", n: foundryResourcesTotal }, { c: "amber", t: "需要处理", n: 0 }, { c: "gray", t: "账号", n: foundryAccountTotal }]} />
           </div>
-        </Card>
+        </div>
 
         <Card title="最近操作" sub="最近的 Azure 操作记录和处理状态。"
           extra={<Link to="/jobs" className="text-[13px] text-blue-600 hover:text-blue-700">查看全部操作 →</Link>}>
@@ -257,11 +276,14 @@ export default function Overview() {
               <tbody className="divide-y divide-slate-100">
                 {jobs.map((j) => (
                   <tr key={j.id}>
-                    <td className="px-3 py-3 text-slate-500 whitespace-nowrap">{j.created_at || "—"}</td>
-                    <td className="px-3 py-3 text-slate-700">{j.title || j.type}</td>
-                    <td className="px-3 py-3 text-slate-500 font-mono text-[12px]">{(j.id || "").slice(0, 8)}</td>
-                    <td className="px-3 py-3 text-slate-500">—</td>
-                    <td className="px-3 py-3"><StatusBadge status={j.status} /></td>
+                    <td className="px-3 py-4 text-slate-500 whitespace-nowrap">{j.created_at || "—"}</td>
+                    <td className="px-3 py-4 text-slate-800 font-medium">{j.title || j.type}</td>
+                    <td className="px-3 py-4 text-slate-500">
+                      <div className="font-mono text-[12px] text-slate-800">{shortId(j.id)}</div>
+                      <div className="text-[12px] text-slate-500 mt-0.5">{jobResourceType(j.type)}</div>
+                    </td>
+                    <td className="px-3 py-4 text-slate-500">{j.operator || "sijuly"}</td>
+                    <td className="px-3 py-4"><StatusBadge status={j.status} /></td>
                   </tr>
                 ))}
               </tbody>
