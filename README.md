@@ -20,6 +20,25 @@
 
 ## 部署
 
+### 一键安装 / 更新
+
+```bash
+curl -fsSL https://github.com/SIJULY/azure/raw/main/install.sh | bash
+```
+
+默认安装到 `/opt/azure-panel`，访问端口 `8080`，默认账号 `admin / admin123`。
+
+自定义安装目录、端口或初始管理员密码：
+
+```bash
+curl -fsSL https://github.com/SIJULY/azure/raw/main/install.sh | \
+  INSTALL_DIR=/opt/azure-panel PANEL_PORT=8080 ADMIN_USERNAME=admin ADMIN_PASSWORD='请改成强密码' bash
+```
+
+已安装后再次运行同一条命令即可自动 `git pull` 并重新构建启动，`./data` 数据目录会保留。
+
+### 手动部署
+
 ```bash
 # 1. 克隆
 git clone https://github.com/SIJULY/azure.git

@@ -6,9 +6,21 @@
 ## 一键部署（VPS）
 
 ```bash
-# 1. 把项目传到 VPS（示例放 /opt/azure-panel）
-# 2. 修改 docker-compose.yml 中的 ADMIN_PASSWORD（首次启动生效）
-# 3. 启动
+curl -fsSL https://github.com/SIJULY/azure/raw/main/install.sh | bash
+```
+
+脚本默认安装/更新到 `/opt/azure-panel`，自动执行 `git pull`、`docker compose up -d --build`，并保留 `./data` 数据目录。
+
+自定义端口和首次管理员密码：
+
+```bash
+curl -fsSL https://github.com/SIJULY/azure/raw/main/install.sh | \
+  PANEL_PORT=8080 ADMIN_USERNAME=admin ADMIN_PASSWORD='请改成强密码' bash
+```
+
+如需手动部署：把项目传到 VPS（示例放 `/opt/azure-panel`），修改 `docker-compose.yml` 中的 `ADMIN_PASSWORD`（首次启动生效），然后运行：
+
+```bash
 docker compose up -d --build
 ```
 
