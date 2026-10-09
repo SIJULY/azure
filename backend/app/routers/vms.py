@@ -66,12 +66,12 @@ def _do_list_vms(account_id: int) -> dict:
                     "status": status, "resource_group": rg, "public_ip": public_ip,
                     "disk_size": "", "time_created": "",
                 })
-            return {"vms": out}
+            return {"vms": out, "_fetch_ok": True}
     finally:
         db.close()
 
 
-@cached(ttl=600)
+@cached(ttl=600, validate=lambda d: d.get("_fetch_ok", False))
 def _cached_vms(account_id: int) -> dict:
     return _do_list_vms(account_id)
 
@@ -103,8 +103,6 @@ class VmActionIn(BaseModel):
 @router.get("")
 def list_vms(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     try:
-        if refresh:
-            cache_invalidate("_cached_vms")
         if refresh:
             cache_invalidate("_cached_vms")
         return _cached_vms(account_id)

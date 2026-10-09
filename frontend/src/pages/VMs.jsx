@@ -216,7 +216,8 @@ export default function VMs() {
         } catch { /* skip */ }
       }
       setVms((prev) => {
-        // 静默更新：数据有变化才更新，避免闪烁
+        // 静默更新：空数据不覆盖已有数据（防 Azure 瞬时失败）
+        if (all.length === 0 && prev.length > 0) return prev;
         try {
           if (JSON.stringify(prev) !== JSON.stringify(all)) return all;
         } catch { /* ignore */ }
