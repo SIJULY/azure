@@ -1,4 +1,4 @@
-export const OVERVIEW_CACHE_VERSION = 6;
+export const OVERVIEW_CACHE_VERSION = 7;
 export const OVERVIEW_UPDATED_EVENT = "azure-panel-overview-updated";
 
 const OVERVIEW_CACHE_KEY = "overview_cache";
@@ -35,6 +35,32 @@ export function readOverviewCache() {
 
 export function writeOverviewCache(data, notify = true) {
   const normalized = normalizeOverviewData(data);
+  // 如果新数据全 0 但缓存中有有效数据，不覆盖（避免 Azure 失败时污染缓存）
+  try {
+    const raw = localStorage.getItem(OVERVIEW_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const cached = parsed?.data;
+      if (cached) {
+        const newIsEmpty =
+          (normalized.resource_groups?.total || 0) === 0 &&
+          (normalized.vms?.total || 0) === 0 &&
+          (normalized.foundry?.total || 0) === 0;
+        const cachedHasData =
+          (cached.resource_groups?.total || 0) > 0 ||
+          (cached.vms?.total || 0) > 0 ||
+          (cached.foundry?.total || 0) > 0;
+        if (newIsEmpty && cachedHasData) {
+          // 保留缓存，只更新 recent_jobs（如果有）
+          if (Array.isArray(normalized.recent_jobs) && normalized.recent_jobs.length > 0) {
+            cached.recent_jobs = normalized.recent_jobs;
+            localStorage.setItem(OVERVIEW_CACHE_KEY, JSON.stringify({ version: OVERVIEW_CACHE_VERSION, data: cached }));
+          }
+          return normalizeOverviewData(cached);
+        }
+      }
+    }
+  } catch {}
   try { localStorage.setItem(OVERVIEW_CACHE_KEY, JSON.stringify({ version: OVERVIEW_CACHE_VERSION, data: normalized })); } catch {}
   if (notify && typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(OVERVIEW_UPDATED_EVENT, { detail: normalized }));
