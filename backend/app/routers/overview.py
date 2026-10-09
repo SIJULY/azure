@@ -8,9 +8,9 @@ from .foundry import is_foundry_account
 
 router = APIRouter(prefix="/overview", tags=["总览"])
 
-# 总览缓存（60 秒），避免每次刷都查 Azure
+# 总览缓存（15 秒），避免每次刷都查 Azure；refresh=true 可绕过缓存。
 _overview_cache = {"data": None, "ts": 0}
-_OVERVIEW_TTL = 60
+_OVERVIEW_TTL = 15
 
 
 @router.get("")

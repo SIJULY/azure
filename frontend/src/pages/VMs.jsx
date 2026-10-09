@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
+import { publishVmOverview } from "../overviewSync.js";
 import {
   Badge, Btn, Card, Confirm, EmptyState, Field, Input, Loading,
   Modal, PageHead, Select, Textarea, useSearch, useToast,
@@ -238,10 +239,12 @@ export default function VMs() {
     try {
       const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
       const all = [];
+      let okCount = 0;
       for (const id of ids) {
         try {
           const suffix = force ? "&refresh=true" : "";
           const d = await api.get(`/vms?account_id=${id}${suffix}`);
+          okCount += 1;
           const a = accounts.find((x) => x.id === id);
           (d.vms || []).forEach((v) => all.push({ ...v, _aid: id, _alias: a?.alias || "" }));
         } catch { /* skip */ }
@@ -254,6 +257,7 @@ export default function VMs() {
         } catch { /* ignore */ }
         return prev;
       });
+      if (okCount > 0) publishVmOverview(all);
     } finally { if (!force) setLoading(false); }
   };
   useEffect(() => {

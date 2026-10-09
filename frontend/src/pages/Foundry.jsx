@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
+import { publishFoundryOverview } from "../overviewSync.js";
 import {
   Badge, Btn, Card, EmptyState, Field, Input, Loading,
   Modal, PageHead, Select, Table, Td, useToast,
@@ -77,11 +78,6 @@ function EnsureModal({ accounts, tiers, onClose, onSaved }) {
               );
             })}
           </Select>
-          {f.account_id && (
-            <div className="text-[12px] text-slate-400 mt-1">
-              缓存的订阅级 Foundry 配额层级：{tiers[Number(f.account_id)]?.quota_tier || "未知"}
-            </div>
-          )}
         </Field>
         <Field label="账号名">
           <Input value={f.name} placeholder="输入账号名称" onChange={(e) => setF({ ...f, name: e.target.value })} />
@@ -256,13 +252,16 @@ export default function Foundry() {
     if (!accounts.length) return;
     const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
     const rs = [];
+    let okCount = 0;
     for (const id of ids) {
       try {
         const r = await api.get(`/foundry/resources?account_id=${id}`, { timeout: 45000 });
+        okCount += 1;
         (r || []).forEach((x) => rs.push({ ...x, _aid: id }));
       } catch { /* skip */ }
     }
     setResources(rs);
+    if (okCount > 0) publishFoundryOverview(rs);
   };
 
   useEffect(() => {
@@ -316,11 +315,6 @@ export default function Foundry() {
               </option>
             ))}
           </Select>
-          {accountId !== "all" && (
-            <div className="text-[12px] text-slate-400 mt-1">
-              缓存的订阅级 Foundry 配额层级：{tiers[Number(accountId)]?.quota_tier || "未知"}
-            </div>
-          )}
         </div>
         <div className="w-full sm:w-56 min-w-0">
           <div className="text-[13px] font-medium text-slate-700 mb-1.5">Foundry 账号</div>

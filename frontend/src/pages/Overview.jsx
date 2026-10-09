@@ -2,41 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { Card, EmptyState, Select, StatusBadge } from "../ui.jsx";
-
-const DEFAULT_OVERVIEW_DATA = {
-  accounts: { total: 0, healthy: 0, error: 0 },
-  resource_groups: { total: 0 },
-  vms: { running: 0, stopped: 0, total: 0 },
-  foundry: { total: 0, resources_total: 0, partial: false },
-  recent_jobs: [],
-};
-const OVERVIEW_CACHE_VERSION = 4;
-
-function readOverviewCache() {
-  try {
-    const raw = localStorage.getItem("overview_cache");
-    if (!raw) return DEFAULT_OVERVIEW_DATA;
-    const parsed = JSON.parse(raw);
-    if (parsed?.version !== OVERVIEW_CACHE_VERSION) return DEFAULT_OVERVIEW_DATA;
-    return normalizeOverviewData(parsed.data);
-  } catch { return DEFAULT_OVERVIEW_DATA; }
-}
-
-function writeOverviewCache(data) {
-  try {
-    localStorage.setItem("overview_cache", JSON.stringify({ version: OVERVIEW_CACHE_VERSION, data }));
-  } catch {}
-}
-
-function normalizeOverviewData(data) {
-  return {
-    accounts: { ...DEFAULT_OVERVIEW_DATA.accounts, ...(data?.accounts || {}) },
-    resource_groups: { ...DEFAULT_OVERVIEW_DATA.resource_groups, ...(data?.resource_groups || {}) },
-    vms: { ...DEFAULT_OVERVIEW_DATA.vms, ...(data?.vms || {}) },
-    foundry: { ...DEFAULT_OVERVIEW_DATA.foundry, ...(data?.foundry || {}) },
-    recent_jobs: data?.recent_jobs || [],
-  };
-}
+import { OVERVIEW_UPDATED_EVENT, normalizeOverviewData, readOverviewCache, writeOverviewCache } from "../overviewSync.js";
 
 /* ---------- 小组件 ---------- */
 const DOT = { green: "bg-green-500", red: "bg-red-500", blue: "bg-blue-500", gray: "bg-slate-300", amber: "bg-amber-500" };
@@ -197,11 +163,13 @@ export default function Overview() {
   const [jobs, setJobs] = useState([]);
 
   useEffect(() => {
+    const onOverviewUpdated = (e) => setData(normalizeOverviewData(e.detail || readOverviewCache()));
+    window.addEventListener(OVERVIEW_UPDATED_EVENT, onOverviewUpdated);
     // 后台静默更新，不阻塞页面
-    api.get("/overview?refresh=true").then((d) => {
+    api.get("/overview?refresh=true", { timeout: 120000 }).then((d) => {
       const next = normalizeOverviewData(d);
       setData(() => {
-        writeOverviewCache(next);
+        writeOverviewCache(next, false);
         return next;
       });
       setErr("");
@@ -219,6 +187,7 @@ export default function Overview() {
       }
     }).catch(() => {});
     api.get("/jobs?limit=5").then(setJobs).catch(() => {});
+    return () => window.removeEventListener(OVERVIEW_UPDATED_EVENT, onOverviewUpdated);
     // eslint-disable-next-line
   }, []);
 

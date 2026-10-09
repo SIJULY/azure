@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
+import { publishResourceGroupOverview } from "../overviewSync.js";
 import {
   Badge, Btn, Card, Confirm, EmptyState, Field, Input, Loading,
   Modal, PageHead, Select, Textarea, useSearch, useToast,
@@ -99,10 +100,12 @@ export default function ResourceGroups() {
     try {
       const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
       const all = [];
+      let okCount = 0;
       for (const id of ids) {
         try {
           const suffix = force ? "&refresh=true" : "";
           const r = await api.get(`/resource-groups?account_id=${id}${suffix}`);
+          okCount += 1;
           const a = accounts.find((x) => x.id === id);
           (r || []).forEach((x) => all.push({ ...x, _alias: a?.alias || "", _aid: id, _sub: a?.subscription_id || "" }));
         } catch { /* skip */ }
@@ -111,6 +114,7 @@ export default function ResourceGroups() {
         try { if (JSON.stringify(prev) !== JSON.stringify(all)) return all; } catch {}
         return prev;
       });
+      if (okCount > 0) publishResourceGroupOverview(all);
     } catch (e) { if (!force) toast("加载失败：" + e.message); }
     finally { if (!force) setLoading(false); }
   };
@@ -161,9 +165,6 @@ export default function ResourceGroups() {
               </option>
             ))}
           </Select>
-          {accountId !== "all" && tiers[Number(accountId)] && (
-            <p className="text-[11px] text-slate-400 mt-1">缓存的订阅级 Foundry 配额层级：{tiers[Number(accountId)]}</p>
-          )}
         </Field>
         <Field label="区域" className="w-44">
           <Select value={region} onChange={(e) => setRegion(e.target.value)}>

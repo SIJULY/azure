@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
+import { publishAccountOverview } from "../overviewSync.js";
 import {
   Badge, Btn, Card, Check, Confirm, EmptyState, Field, Input, Loading,
   Modal, Select, StatusBadge, Td, Table, Textarea, useSearch, useToast,
@@ -302,7 +303,9 @@ export default function Accounts() {
     setLoading(true);
     try {
       const d = await api.get("/accounts");
-      setItems(d.items || []);
+      const nextItems = d.items || [];
+      setItems(nextItems);
+      publishAccountOverview(nextItems);
       setSel([]);
     } finally { setLoading(false); }
   };
