@@ -153,15 +153,31 @@ function QuotaCard({ accounts }) {
 }
 
 export default function Overview() {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(() => {
+    // 优先显示缓存，秒开
+    try {
+      const c = localStorage.getItem("overview_cache");
+      return c ? JSON.parse(c) : null;
+    } catch { return null; }
+  });
+  const [updating, setUpdating] = useState(false);
   const [err, setErr] = useState("");
   const [accounts, setAccounts] = useState([]);
   const [jobs, setJobs] = useState([]);
 
   useEffect(() => {
-    api.get("/overview").then(setData).catch((e) => setErr(e.message));
+    // 后台静默更新，不阻塞页面
+    setUpdating(true);
+    api.get("/overview").then((d) => {
+      setData(d);
+      try { localStorage.setItem("overview_cache", JSON.stringify(d)); } catch {}
+    }).catch((e) => {
+      // 有缓存时不显示错误，静默失败
+      if (!data) setErr(e.message);
+    }).finally(() => setUpdating(false));
     api.get("/accounts").then((d) => setAccounts(d.items || [])).catch(() => {});
     api.get("/jobs?limit=5").then(setJobs).catch(() => {});
+    // eslint-disable-next-line
   }, []);
 
   const firstHealthy = accounts.find((a) => a.status === "healthy");
@@ -179,12 +195,16 @@ export default function Overview() {
   ];
 
   if (err) return (<><Crumb /><p className="text-[13px] text-red-600 mt-4">加载失败：{err}</p></>);
+  // 有缓存直接显示，无缓存才显示加载中（仅首次）
   if (!data) return (<><Crumb /><Loading /></>);
 
   const v = data.vms || {};
   return (
     <>
-      <div className="mb-4"><Crumb /></div>
+      <div className="mb-4 flex items-center gap-2">
+        <Crumb />
+        {updating && <span className="text-[11px] text-slate-400">更新中…</span>}
+      </div>
       {ctx && (
         <button className="inline-flex items-center gap-1 text-[13px] text-slate-500 -mt-2 mb-4 hover:text-slate-700">
           {ctx}
