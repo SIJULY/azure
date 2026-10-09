@@ -81,14 +81,14 @@ export function Check({ label, ...rest }) {
 }
 
 /* ---------- 弹窗 ---------- */
-export function Modal({ title, onClose, children, wide = false }) {
+export function Modal({ title, onClose, children, wide = false, className = "", bodyClassName = "" }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/40" onClick={onClose} />
       <div
         className={`relative bg-white rounded-xl shadow-xl w-full ${
           wide ? "max-w-3xl" : "max-w-lg"
-        } max-h-[90vh] flex flex-col`}
+        } max-h-[90vh] flex flex-col ${className}`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h3 className="text-[15px] font-semibold text-slate-900">{title}</h3>
@@ -96,7 +96,7 @@ export function Modal({ title, onClose, children, wide = false }) {
             ×
           </button>
         </div>
-        <div className="px-5 py-4 overflow-y-auto">{children}</div>
+        <div className={`px-5 py-4 overflow-y-auto ${bodyClassName}`}>{children}</div>
       </div>
     </div>
   );
