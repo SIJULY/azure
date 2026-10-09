@@ -11,6 +11,23 @@ from ..vendor.azure_manager import AZURE_REGIONS_CN
 router = APIRouter(prefix="/vms", tags=["虚拟机"])
 
 
+def _resource_group_from_id(resource_id: str) -> str:
+    rid = resource_id or ""
+    return rid.split("/resourceGroups/")[1].split("/")[0] if "/resourceGroups/" in rid else ""
+
+
+def _name_from_id(resource_id: str) -> str:
+    return (resource_id or "").rstrip("/").split("/")[-1]
+
+
+def _power_state_from_statuses(statuses) -> str:
+    for st in statuses or []:
+        code = (getattr(st, "code", "") or "").lower()
+        if code.startswith("powerstate/"):
+            return code.split("/", 1)[1]
+    return ""
+
+
 def _do_list_vms(account_id: int) -> dict:
     from ..azure_svc import SessionLocal
     db = SessionLocal()
@@ -26,45 +43,69 @@ def _do_list_vms(account_id: int) -> dict:
                 vms = call_with_timeout(
                     lambda: list(mgr.compute_client.virtual_machines.list_all()),
                     timeout=20, timeout_msg="VM 列表查询超时")
-            except Exception:
-                vms = []
+            except Exception as e:
+                raise RuntimeError(str(e))
             for vm in vms:
                 vid = vm.id or ""
-                rg = vid.split("/resourceGroups/")[1].split("/")[0] if "/resourceGroups/" in vid else ""
+                rg = _resource_group_from_id(vid)
                 status = "unknown"
                 if rg:
                     try:
                         detail = call_with_timeout(
                             lambda: mgr.compute_client.virtual_machines.get(rg, vm.name, expand="instanceView"),
-                            timeout=10, timeout_msg="VM 状态查询超时")
-                        for st in (detail.instance_view.statuses or []):
-                            code = (st.code or "").lower()
-                            if code.startswith("powerstate/"):
-                                status = code.split("/", 1)[1]
-                                break
+                            timeout=15, timeout_msg="VM 状态查询超时")
+                        status = _power_state_from_statuses(getattr(getattr(detail, "instance_view", None), "statuses", [])) or status
                     except Exception:
-                        pass
+                        try:
+                            iv = call_with_timeout(
+                                lambda: mgr.compute_client.virtual_machines.instance_view(rg, vm.name),
+                                timeout=15, timeout_msg="VM 状态查询超时")
+                            status = _power_state_from_statuses(getattr(iv, "statuses", [])) or status
+                        except Exception:
+                            pass
                 public_ip = ""
+                private_ip = ""
+                ip_allocation_method = ""
                 try:
                     def _get_ip():
                         nics = (vm.network_profile.network_interfaces or []) if vm.network_profile else []
-                        if nics and rg:
-                            nic_name = (nics[0].id or "").split("/")[-1]
-                            nic = mgr.network_client.network_interfaces.get(rg, nic_name)
-                            ip_cfgs = nic.ip_configurations or []
-                            if ip_cfgs and ip_cfgs[0].public_ip_address:
-                                pip_name = (ip_cfgs[0].public_ip_address.id or "").split("/")[-1]
-                                pip = mgr.network_client.public_ip_addresses.get(rg, pip_name)
-                                return pip.ip_address or ""
-                        return ""
-                    public_ip = call_with_timeout(_get_ip, timeout=10, timeout_msg="公网 IP 查询超时")
+                        first_private_ip = ""
+                        first_allocation = ""
+                        for nic_ref in nics:
+                            nic_id = getattr(nic_ref, "id", "") or ""
+                            nic_rg = _resource_group_from_id(nic_id) or rg
+                            nic_name = _name_from_id(nic_id)
+                            if not nic_rg or not nic_name:
+                                continue
+                            nic = mgr.network_client.network_interfaces.get(nic_rg, nic_name)
+                            for cfg in (getattr(nic, "ip_configurations", None) or []):
+                                if not first_private_ip:
+                                    first_private_ip = getattr(cfg, "private_ip_address", "") or ""
+                                pub = getattr(cfg, "public_ip_address", None)
+                                pub_id = getattr(pub, "id", "") if pub else ""
+                                if not pub_id:
+                                    continue
+                                pip_rg = _resource_group_from_id(pub_id) or nic_rg
+                                pip_name = _name_from_id(pub_id)
+                                if not pip_rg or not pip_name:
+                                    continue
+                                pip = mgr.network_client.public_ip_addresses.get(pip_rg, pip_name)
+                                if not first_allocation:
+                                    first_allocation = getattr(pip, "public_ip_allocation_method", "") or ""
+                                ip = getattr(pip, "ip_address", "") or ""
+                                if ip:
+                                    return ip, first_private_ip, first_allocation
+                        return "", first_private_ip, first_allocation
+                    public_ip, private_ip, ip_allocation_method = call_with_timeout(
+                        _get_ip, timeout=20, timeout_msg="公网 IP 查询超时")
                 except Exception:
                     pass
                 out.append({
                     "id": vid, "name": vm.name, "location": vm.location,
                     "vm_size": (vm.hardware_profile.vm_size if vm.hardware_profile else ""),
                     "status": status, "resource_group": rg, "public_ip": public_ip,
-                    "disk_size": "", "time_created": "",
+                    "private_ip": private_ip, "ip_allocation_method": ip_allocation_method,
+                    "disk_size": "", "time_created": getattr(vm, "time_created", "") or "",
                 })
             return {"vms": out, "_fetch_ok": True}
     finally:

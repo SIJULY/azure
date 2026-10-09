@@ -227,6 +227,7 @@ export default function VMs() {
   const [region, setRegion] = useState("all");
   const [vms, setVms] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
 
@@ -234,8 +235,10 @@ export default function VMs() {
     api.get("/accounts").then((d) => setAccounts(d.items || [])).catch(() => {});
   }, []);
 
-  const load = async (force = false) => {
-    if (!force) setLoading(true);
+  const load = async (force = false, manual = false) => {
+    if (manual) setRefreshing(true);
+    else if (!force) setLoading(true);
+    let failedCount = 0;
     try {
       const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
       const all = [];
@@ -247,18 +250,25 @@ export default function VMs() {
           okCount += 1;
           const a = accounts.find((x) => x.id === id);
           (d.vms || []).forEach((v) => all.push({ ...v, _aid: id, _alias: a?.alias || "" }));
-        } catch { /* skip */ }
+        } catch { failedCount += 1; }
       }
+      if (okCount === 0 && failedCount > 0) throw new Error("所有账号的虚拟机刷新都失败了，请检查账号权限、代理或后端日志");
       setVms((prev) => {
         // 静默更新：空数据不覆盖已有数据（防 Azure 瞬时失败）
-        if (all.length === 0 && prev.length > 0) return prev;
+        if (!manual && all.length === 0 && prev.length > 0) return prev;
         try {
           if (JSON.stringify(prev) !== JSON.stringify(all)) return all;
         } catch { /* ignore */ }
         return prev;
       });
       if (okCount > 0) publishVmOverview(all);
-    } finally { if (!force) setLoading(false); }
+      if (manual) toast(`刷新完成：${all.length} 台虚拟机${failedCount ? `，${failedCount} 个账号失败` : ""}`);
+    } catch (e) {
+      if (manual || !force) toast("刷新失败：" + e.message);
+    } finally {
+      if (manual) setRefreshing(false);
+      else if (!force) setLoading(false);
+    }
   };
   useEffect(() => {
     if (accounts.length) {
@@ -321,7 +331,7 @@ export default function VMs() {
           </Select>
         </Field>
         <div className="flex-1" />
-        <Btn variant="secondary" onClick={() => load(true)} disabled={loading}>{loading ? "刷新中" : "刷新"}</Btn>
+        <Btn variant="secondary" onClick={() => load(true, true)} disabled={loading || refreshing}>{refreshing ? "刷新中..." : "刷新"}</Btn>
         <Btn onClick={() => setCreateOpen(true)}>创建虚拟机</Btn>
       </div>
 
@@ -341,7 +351,9 @@ export default function VMs() {
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-[12px] text-slate-500">
                   <span>系统 {(v.os_type || "linux").toLowerCase()}</span>
-                  <span>公网 IP <span className="font-mono">{v.public_ip || "—"}</span></span>
+                  <span>公网 IP <span className="font-mono">{v.public_ip || "未绑定/读取中"}</span></span>
+                  {v.private_ip && <span>私网 IP <span className="font-mono">{v.private_ip}</span></span>}
+                  {v.ip_allocation_method && <span>IP {v.ip_allocation_method}</span>}
                 </div>
                 <div className="flex gap-1.5 flex-wrap mt-3">
                   {ACTS.map((a) => (
