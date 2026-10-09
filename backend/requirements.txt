@@ -1,0 +1,15 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+sqlalchemy>=2.0,<3
+cryptography>=42,<47
+python-jose>=3.3,<4
+passlib[bcrypt]>=1.7,<2
+bcrypt==4.0.1  # passlib 与 bcrypt>=4.1 不兼容（72 字节限制报错），锁定 4.0.1
+python-multipart>=0.0.9,<1
+# Azure（与 CloudManager 锁定版本一致）
+azure-identity>=1.25,<2
+azure-mgmt-compute>=38.2,<39
+azure-mgmt-network>=31.0,<32
+azure-mgmt-resource>=26.0,<27
+azure-mgmt-cognitiveservices>=14.1,<15
+requests>=2.32,<3
