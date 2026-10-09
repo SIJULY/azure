@@ -73,18 +73,18 @@ function Panel({ title, sub, icon, iconColor, extra, children, className = "", b
   return (
     <section className={`overflow-hidden rounded-2xl border border-slate-200 bg-white ${className}`}>
       {(title || extra) && (
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-7 py-5">
-          <div className="flex items-center gap-4">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4">
+          <div className="flex items-center gap-3">
             {icon && <IconTile icon={icon} color={iconColor} large />}
             <div>
-              {title && <h2 className="text-[18px] font-semibold tracking-tight text-slate-950">{title}</h2>}
-              {sub && <p className="mt-1 text-[13px] text-slate-500">{sub}</p>}
+              {title && <h2 className="text-[17px] font-semibold tracking-tight text-slate-950">{title}</h2>}
+              {sub && <p className="mt-0.5 text-[13px] text-slate-500">{sub}</p>}
             </div>
           </div>
-          {extra && <div className="shrink-0 pt-1">{extra}</div>}
+          {extra && <div className="shrink-0 pt-0.5">{extra}</div>}
         </div>
       )}
-      <div className={bodyClassName || "px-7 py-5"}>{children}</div>
+      <div className={bodyClassName || "px-6 py-4"}>{children}</div>
     </section>
   );
 }
@@ -200,32 +200,32 @@ function RecentJobs({ jobs }) {
           <table className="w-full min-w-[720px] text-left text-[14px]">
             <thead>
               <tr className="border-b border-slate-100 text-slate-500">
-                <th className="px-7 py-4 font-semibold">开始时间</th>
-                <th className="px-5 py-4 font-semibold">操作</th>
-                <th className="px-5 py-4 font-semibold">资源</th>
-                <th className="px-7 py-4 font-semibold">状态</th>
+                <th className="px-6 py-3 font-semibold">开始时间</th>
+                <th className="px-4 py-3 font-semibold">操作</th>
+                <th className="px-4 py-3 font-semibold">资源</th>
+                <th className="px-6 py-3 font-semibold">状态</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {jobs.slice(0, 6).map((j) => (
                 <tr key={j.id || `${j.type}-${j.created_at}`} className="hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-7 py-5 text-slate-500">{fmtTime(j.created_at)}</td>
-                  <td className="px-5 py-5">
-                    <div className="flex items-start gap-3">
-                      <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-100">
-                        <Icon d={ICONS.activity} className="h-4 w-4" />
+                  <td className="whitespace-nowrap px-6 py-3 text-slate-500">{fmtTime(j.created_at)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 ring-1 ring-slate-100">
+                        <Icon d={ICONS.activity} className="h-3.5 w-3.5" />
                       </span>
                       <div>
                         <div className="font-semibold text-slate-950">{j.title || j.type || "Azure 操作"}</div>
-                        {j.status === "failed" && <div className="mt-2 text-[13px] font-medium text-red-600">任务执行失败，请检查代理、账户配置或服务状态后重试。</div>}
+                        {j.status === "failed" && <div className="mt-1 text-[13px] font-medium text-red-600">任务执行失败，请检查代理、账户配置或服务状态后重试。</div>}
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-5">
+                  <td className="px-4 py-3">
                     <div className="font-mono text-[13px] font-semibold text-slate-950">{jobResource(j)}</div>
-                    <div className="mt-1 text-slate-500">{jobTypeName(j)}</div>
+                    <div className="mt-0.5 text-[13px] text-slate-500">{jobTypeName(j)}</div>
                   </td>
-                  <td className="px-7 py-5"><StatusBadge status={j.status} /></td>
+                  <td className="px-6 py-3"><StatusBadge status={j.status} /></td>
                 </tr>
               ))}
             </tbody>
@@ -351,18 +351,18 @@ function QuotaCard({ accounts }) {
       {loading && <div className="py-10 text-center text-[14px] text-slate-400">正在读取配额缓存...</div>}
       {!loading && err && <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">配额读取失败：{err}</div>}
       {!loading && !err && rows.length === 0 && <EmptyState icon="📊" text="暂无可展示的配额数据" />}
-      {!loading && !err && rows.length > 0 && <div className="space-y-7">{rows.map((q) => <QuotaProgress key={`${q.region}-${q.name}`} q={q} />)}</div>}
+      {!loading && !err && rows.length > 0 && <div className="space-y-5">{rows.map((q) => <QuotaProgress key={`${q.region}-${q.name}`} q={q} />)}</div>}
     </Panel>
   );
 }
 
 function NeedItem({ color, icon, title, desc, to }) {
   return (
-    <Link to={to} className="flex items-center gap-5 px-7 py-6 transition hover:bg-slate-50/70">
+    <Link to={to} className="flex items-center gap-4 px-6 py-4 transition hover:bg-slate-50/70">
       <IconTile color={color} icon={icon} large />
       <div className="min-w-0 flex-1">
-        <div className="text-[18px] font-semibold text-slate-950">{title}</div>
-        <div className="mt-1 text-[14px] text-slate-500">{desc}</div>
+        <div className="text-[16px] font-semibold text-slate-950">{title}</div>
+        <div className="mt-0.5 text-[13px] text-slate-500">{desc}</div>
       </div>
       <ChevronR />
     </Link>
@@ -513,9 +513,9 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="space-y-7">
+      <div className="space-y-5">
         <RecentJobs jobs={jobs} />
-        <div className="grid grid-cols-1 gap-7 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
           <QuotaCard accounts={accounts} />
           <NeedPanel data={data} jobs={jobs} syncError={failedJobs === 0 ? err : ""} />
         </div>

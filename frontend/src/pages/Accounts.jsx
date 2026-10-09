@@ -351,7 +351,7 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
           </div>
         </div>
 
-        <div className="px-7 py-5">
+        <div className="px-6 py-4">
           <div className="mb-5 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <Check label="全选当前列表" checked={sel.length === filtered.length && filtered.length > 0} onChange={toggleAll} />
             <Btn variant="danger" className="rounded-xl bg-red-500 px-4 hover:bg-red-600" disabled={sel.length === 0}
@@ -384,7 +384,7 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                       const flag = toFlagEmoji(a.country_code);
                       return (
                         <tr key={a.id} className="border-b border-slate-100 transition hover:bg-slate-50/70">
-                          <td className="px-4 py-5 align-middle">
+                          <td className="px-4 py-3 align-middle">
                             <div className="flex items-center gap-4">
                               <input type="checkbox" className="h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600" checked={sel.includes(a.id)} onChange={() => toggle(a.id)} />
                               <AccountIcon />
@@ -397,18 +397,18 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-5 align-middle">
+                          <td className="px-4 py-3 align-middle">
                             <Badge color="blue" className="rounded-full px-3 py-1 text-[13px]">
                               <span className="mr-1">◇</span>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}
                             </Badge>
                           </td>
-                          <td className="px-4 py-5 align-middle"><div className="max-w-[260px] break-all font-mono text-[13px] text-slate-600">{a.subscription_id || "—"}</div></td>
-                          <td className="px-4 py-5 align-middle">
+                          <td className="px-4 py-3 align-middle"><div className="max-w-[260px] break-all font-mono text-[13px] text-slate-600">{a.subscription_id || "—"}</div></td>
+                          <td className="px-4 py-3 align-middle">
                             {a.proxy_url || a.proxy_name ? <div className="max-w-[260px] truncate text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
                           </td>
-                          <td className="px-4 py-5 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 max-w-[220px] truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
-                          <td className="px-4 py-5 align-middle text-slate-500 whitespace-nowrap">{formatDateTime(a.last_checked)}</td>
-                          <td className="px-4 py-5 align-middle">
+                          <td className="px-4 py-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 max-w-[220px] truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
+                          <td className="px-4 py-3 align-middle text-slate-500 whitespace-nowrap">{formatDateTime(a.last_checked)}</td>
+                          <td className="px-4 py-3 align-middle">
                             <div className="flex items-center gap-1 whitespace-nowrap">
                               <ActionButton title="重新检测账户状态" onClick={() => testOne(a)} disabled={testing === a.id}><Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" /></ActionButton>
                               <ActionButton title="编辑" onClick={() => setEditInit(a)}><Svg d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></ActionButton>
