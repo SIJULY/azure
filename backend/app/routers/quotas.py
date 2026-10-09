@@ -51,7 +51,7 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
                         "usages": [
                             {"name": u.name.value if u.name else "", "current": u.current_value, "limit": u.limit}
                             for u in usages
-                            if u.name and "virtualmachines" in (u.name.value or "").lower()
+                            if u.name and u.name.value
                         ],
                     })
                 except Exception:

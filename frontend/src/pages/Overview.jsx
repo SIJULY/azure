@@ -35,6 +35,14 @@ const QUOTA_NAMES = {
   standardA0_A7Family: "基本 A 系列 vCPU",
   publicIPAddresses: "公网 IP 地址",
   cores: "内核",
+  premiumDiskCount: "高级磁盘",
+  standardDiskCount: "标准磁盘",
+  snapshots: "快照",
+  networkInterfaces: "网络接口",
+  networkSecurityGroups: "网络安全组",
+  loadBalancers: "负载均衡器",
+  publicIPAddressesBasic: "基础公网 IP",
+  publicIPAddressesStandard: "标准公网 IP",
 };
 
 function Icon({ d, className = "w-5 h-5" }) {
@@ -238,6 +246,7 @@ function QuotaProgress({ q }) {
 function QuotaCard({ accounts }) {
   const healthy = useMemo(() => accounts.filter((a) => a.status === "healthy"), [accounts]);
   const [aid, setAid] = useState("");
+  const [region, setRegion] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -258,17 +267,33 @@ function QuotaCard({ accounts }) {
     return () => { cancelled = true; };
   }, [aid]);
 
+  const regions = useMemo(() => (data?.vm_quotas || []).map((r) => r.region), [data]);
+
+  useEffect(() => {
+    if (regions.length > 0 && !region) setRegion(regions[0]);
+  }, [regions, region]);
+
   const rows = useMemo(() => {
-    const all = (data?.vm_quotas || []).flatMap((region) => (region.usages || []).map((q) => ({ ...q, region: region.region })));
+    // 按选中的区域过滤，没有选中则用第一个区域
+    const targetRegion = region || regions[0];
+    const regionData = (data?.vm_quotas || []).find((r) => r.region === targetRegion);
+    const all = (regionData?.usages || []).map((q) => ({ ...q, region: targetRegion }));
     const positive = all.filter((q) => Number(q.limit || 0) > 0);
-    const preferred = ["totalRegionalVcpus", "cores", "virtualMachines", "standardA0_A7Family", "standardBSFamily", "standardDSv3Family", "publicIPAddresses"];
-    return positive
+    // 去重（同一名称只保留一个）
+    const seen = new Set();
+    const deduped = positive.filter((q) => {
+      if (seen.has(q.name)) return false;
+      seen.add(q.name);
+      return true;
+    });
+    const preferred = ["availabilitySets", "totalRegionalVcpus", "cores", "virtualMachines", "standardA0_A7Family", "standardBSFamily", "standardDSv3Family", "standardAv2Family", "publicIPAddresses"];
+    return deduped
       .sort((a, b) => {
         const ia = preferred.indexOf(a.name), ib = preferred.indexOf(b.name);
         return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
       })
       .slice(0, 4);
-  }, [data]);
+  }, [data, region, regions]);
 
   return (
     <Panel
@@ -277,12 +302,18 @@ function QuotaCard({ accounts }) {
       iconColor="violet"
       extra={<Link to="/quotas" className="text-[14px] font-medium text-blue-600 hover:text-blue-700">查看配额详情</Link>}
     >
-      <div className="mb-6">
-        <label className="space-y-2 block max-w-xs">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <label className="space-y-2">
           <div className="text-[14px] font-semibold text-slate-800">Azure 账号</div>
           <Select value={aid} onChange={(e) => setAid(e.target.value)}>
             {healthy.length === 0 && <option value="">暂无健康账号</option>}
             {healthy.map((a) => <option key={a.id} value={a.id}>{a.alias || `账号 #${a.id}`}</option>)}
+          </Select>
+        </label>
+        <label className="space-y-2">
+          <div className="text-[14px] font-semibold text-slate-800">区域</div>
+          <Select value={region} onChange={(e) => setRegion(e.target.value)}>
+            {regions.map((r) => <option key={r} value={r}>{r}</option>)}
           </Select>
         </label>
       </div>
