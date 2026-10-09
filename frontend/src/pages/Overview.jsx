@@ -93,17 +93,17 @@ function StatCard({ to, color, icon, title, value, rows }) {
   return (
     <Link
       to={to}
-      className="group block min-h-[172px] rounded-2xl border border-slate-200 bg-white p-7 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+      className="group block rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
     >
-      <div className="flex items-center gap-4">
-        <IconTile color={color} icon={icon} large />
-        <div className="text-[18px] font-semibold text-slate-950">{title}</div>
+      <div className="flex items-center gap-2.5">
+        <IconTile color={color} icon={icon} />
+        <div className="text-[15px] font-semibold text-slate-950">{title}</div>
       </div>
-      <div className="mt-6 text-[38px] font-bold leading-none tracking-tight text-slate-950">{Number(value || 0).toLocaleString("en-US")}</div>
-      <div className="mt-7 space-y-3">
+      <div className="mt-4 text-[30px] font-bold leading-none tracking-tight text-slate-950">{Number(value || 0).toLocaleString("en-US")}</div>
+      <div className="mt-4 space-y-2">
         {rows.map((r) => (
-          <div key={r.label} className="flex items-center justify-between gap-6 text-[14px] text-slate-500">
-            <span className="inline-flex items-center gap-3"><Dot c={r.color} />{r.label}</span>
+          <div key={r.label} className="flex items-center justify-between gap-4 text-[13px] text-slate-500">
+            <span className="inline-flex items-center gap-2"><Dot c={r.color} />{r.label}</span>
             <span className="font-medium tabular-nums text-slate-600">{Number(r.value || 0).toLocaleString("en-US")}</span>
           </div>
         ))}
@@ -199,33 +199,33 @@ function RecentJobs({ jobs }) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-[14px]">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-500">
-                <th className="px-6 py-3 font-semibold">开始时间</th>
-                <th className="px-4 py-3 font-semibold">操作</th>
-                <th className="px-4 py-3 font-semibold">资源</th>
-                <th className="px-6 py-3 font-semibold">状态</th>
+              <tr className="border-b border-slate-100 text-[13px] text-slate-500">
+                <th className="px-5 py-2.5 font-medium">开始时间</th>
+                <th className="px-4 py-2.5 font-medium">操作</th>
+                <th className="px-4 py-2.5 font-medium">资源</th>
+                <th className="px-5 py-2.5 font-medium">状态</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {jobs.slice(0, 6).map((j) => (
                 <tr key={j.id || `${j.type}-${j.created_at}`} className="hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-6 py-3 text-slate-500">{fmtTime(j.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 ring-1 ring-slate-100">
-                        <Icon d={ICONS.activity} className="h-3.5 w-3.5" />
+                  <td className="whitespace-nowrap px-5 py-2.5 text-[13px] text-slate-500">{fmtTime(j.created_at)}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-500 ring-1 ring-slate-100">
+                        <Icon d={ICONS.activity} className="h-3 w-3" />
                       </span>
                       <div>
-                        <div className="font-semibold text-slate-950">{j.title || j.type || "Azure 操作"}</div>
-                        {j.status === "failed" && <div className="mt-1 text-[13px] font-medium text-red-600">任务执行失败，请检查代理、账户配置或服务状态后重试。</div>}
+                        <div className="text-[13px] font-medium text-slate-900">{j.title || j.type || "Azure 操作"}</div>
+                        {j.status === "failed" && <div className="mt-0.5 text-[12px] text-red-600">任务执行失败，请检查代理、账户配置或服务状态后重试。</div>}
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="font-mono text-[13px] font-semibold text-slate-950">{jobResource(j)}</div>
-                    <div className="mt-0.5 text-[13px] text-slate-500">{jobTypeName(j)}</div>
+                  <td className="px-4 py-2.5">
+                    <div className="font-mono text-[12px] font-medium text-slate-900">{jobResource(j)}</div>
+                    <div className="mt-0.5 text-[12px] text-slate-500">{jobTypeName(j)}</div>
                   </td>
-                  <td className="px-6 py-3"><StatusBadge status={j.status} /></td>
+                  <td className="px-5 py-2.5"><StatusBadge status={j.status} /></td>
                 </tr>
               ))}
             </tbody>
@@ -249,15 +249,15 @@ function QuotaProgress({ q }) {
   const limit = Number(q.limit || 0);
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center justify-between gap-4 text-[15px]">
-        <span className="truncate font-semibold text-slate-950">{quotaLabel(q.name)}</span>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-4 text-[13px]">
+        <span className="truncate font-medium text-slate-900">{quotaLabel(q.name)}</span>
         <span className="text-slate-500 tabular-nums">{pct}%</span>
       </div>
-      <div className="h-2 rounded-full bg-slate-100">
-        <div className={`h-2 rounded-full ${pct >= 80 ? "bg-amber-500" : "bg-blue-500"}`} style={{ width: `${pct}%` }} />
+      <div className="h-1.5 rounded-full bg-slate-100">
+        <div className={`h-1.5 rounded-full ${pct >= 80 ? "bg-amber-500" : "bg-blue-500"}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className="text-right text-[13px] text-slate-500 tabular-nums">{used.toLocaleString("en-US")} / {limit.toLocaleString("en-US")} Count</div>
+      <div className="text-right text-[12px] text-slate-400 tabular-nums">{used.toLocaleString("en-US")} / {limit.toLocaleString("en-US")} Count</div>
     </div>
   );
 }
@@ -351,7 +351,7 @@ function QuotaCard({ accounts }) {
       {loading && <div className="py-10 text-center text-[14px] text-slate-400">正在读取配额缓存...</div>}
       {!loading && err && <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">配额读取失败：{err}</div>}
       {!loading && !err && rows.length === 0 && <EmptyState icon="📊" text="暂无可展示的配额数据" />}
-      {!loading && !err && rows.length > 0 && <div className="space-y-5">{rows.map((q) => <QuotaProgress key={`${q.region}-${q.name}`} q={q} />)}</div>}
+      {!loading && !err && rows.length > 0 && <div className="space-y-4">{rows.map((q) => <QuotaProgress key={`${q.region}-${q.name}`} q={q} />)}</div>}
     </Panel>
   );
 }
@@ -477,7 +477,7 @@ export default function Overview() {
 
       <div className="mb-8">
         <h1 className="mb-5 text-[22px] font-semibold tracking-tight text-slate-950">资源概览</h1>
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4 md:grid-cols-2">
           <StatCard
             to="/accounts"
             color="blue"
@@ -513,9 +513,9 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <RecentJobs jobs={jobs} />
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
           <QuotaCard accounts={accounts} />
           <NeedPanel data={data} jobs={jobs} syncError={failedJobs === 0 ? err : ""} />
         </div>
