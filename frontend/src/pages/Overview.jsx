@@ -28,21 +28,16 @@ const QUOTA_NAMES = {
   availabilitySets: "可用性集",
   virtualMachines: "虚拟机",
   totalRegionalVcpus: "区域 vCPU 总数",
+  cores: "区域 vCPU 总数",
   standardBSFamily: "标准 BS 系列",
+  standardBpsv2Family: "标准 Bpsv2 系列 vCPU",
   standardDSv3Family: "标准 DSv3 系列",
   standardDSv2Family: "标准 DSv2 系列",
   standardAv2Family: "标准 Av2 系列",
   standardA0_A7Family: "基本 A 系列 vCPU",
   publicIPAddresses: "公网 IP 地址",
-  cores: "内核",
-  premiumDiskCount: "高级磁盘",
-  standardDiskCount: "标准磁盘",
-  snapshots: "快照",
-  networkInterfaces: "网络接口",
-  networkSecurityGroups: "网络安全组",
-  loadBalancers: "负载均衡器",
-  publicIPAddressesBasic: "基础公网 IP",
-  publicIPAddressesStandard: "标准公网 IP",
+  PremiumDiskCount: "高级存储托管磁盘",
+  premiumDiskCount: "高级存储托管磁盘",
 };
 
 function Icon({ d, className = "w-5 h-5" }) {
@@ -306,7 +301,7 @@ function QuotaCard({ accounts }) {
       seen.add(q.name);
       return true;
     });
-    const preferred = ["availabilitySets", "totalRegionalVcpus", "cores", "virtualMachines", "standardA0_A7Family", "standardBSFamily", "standardDSv3Family", "standardAv2Family", "publicIPAddresses"];
+    const preferred = ["cores", "totalRegionalVcpus", "standardBpsv2Family", "standardBSFamily", "virtualMachines", "PremiumDiskCount", "availabilitySets", "standardA0_A7Family", "standardDSv3Family", "standardAv2Family", "publicIPAddresses"];
     return deduped
       .sort((a, b) => {
         const ia = preferred.indexOf(a.name), ib = preferred.indexOf(b.name);
