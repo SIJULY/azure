@@ -28,9 +28,18 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
                 pass
             # 各区域计算配额（只查 4 个常用区域，避免触发限流）
             try:
-                regions = (mgr.get_regions() or [])[:4]
+                raw_regions = mgr.get_regions() or []
             except Exception:
-                regions = []
+                raw_regions = []
+            # get_regions() 返回 "东亚 (香港) (eastasia)" 格式，需提取纯 code
+            import re as _re
+            regions = []
+            for r in raw_regions[:4]:
+                m = _re.search(r'\(([^)]+)\)$', r)
+                code = m.group(1).lower() if m else r.lower()
+                # 确保是纯英文字母的 region code
+                if _re.match(r'^[a-z0-9]+$', code):
+                    regions.append(code)
             for region in regions:
                 try:
                     usages = call_with_timeout(

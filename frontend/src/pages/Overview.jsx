@@ -277,18 +277,12 @@ function QuotaCard({ accounts }) {
       iconColor="violet"
       extra={<Link to="/quotas" className="text-[14px] font-medium text-blue-600 hover:text-blue-700">查看配额详情</Link>}
     >
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <label className="space-y-2">
+      <div className="mb-6">
+        <label className="space-y-2 block max-w-xs">
           <div className="text-[14px] font-semibold text-slate-800">Azure 账号</div>
           <Select value={aid} onChange={(e) => setAid(e.target.value)}>
             {healthy.length === 0 && <option value="">暂无健康账号</option>}
             {healthy.map((a) => <option key={a.id} value={a.id}>{a.alias || `账号 #${a.id}`}</option>)}
-          </Select>
-        </label>
-        <label className="space-y-2">
-          <div className="text-[14px] font-semibold text-slate-800">区域</div>
-          <Select value="eastasia" onChange={() => {}} disabled>
-            <option value="eastasia">(Asia Pacific) East Asia · eastasia</option>
           </Select>
         </label>
       </div>
