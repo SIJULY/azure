@@ -217,7 +217,7 @@ export default function Layout() {
         <TopBar onSearch={setQuery} />
         <div className="flex-1 flex min-h-0">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto">
+          <main className="app-main-content flex-1 overflow-y-auto">
             <div className="max-w-[1360px] mx-auto px-6 py-5">
               <Outlet />
             </div>
