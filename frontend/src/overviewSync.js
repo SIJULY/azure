@@ -35,6 +35,25 @@ export function readOverviewCache() {
 
 export function writeOverviewCache(data, notify = true) {
   const normalized = normalizeOverviewData(data);
+  // 合并策略：如果新数据的某个部分为 0 但缓存中有非 0 值，保留缓存值
+  try {
+    const raw = localStorage.getItem(OVERVIEW_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const cached = parsed?.data;
+      if (cached && parsed?.version === OVERVIEW_CACHE_VERSION) {
+        if ((normalized.resource_groups?.total || 0) === 0 && (cached.resource_groups?.total || 0) > 0) {
+          normalized.resource_groups = cached.resource_groups;
+        }
+        if ((normalized.vms?.total || 0) === 0 && (cached.vms?.total || 0) > 0) {
+          normalized.vms = cached.vms;
+        }
+        if ((normalized.foundry?.total || 0) === 0 && (cached.foundry?.total || 0) > 0) {
+          normalized.foundry = cached.foundry;
+        }
+      }
+    }
+  } catch {}
   try { localStorage.setItem(OVERVIEW_CACHE_KEY, JSON.stringify({ version: OVERVIEW_CACHE_VERSION, data: normalized })); } catch {}
   if (notify && typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(OVERVIEW_UPDATED_EVENT, { detail: normalized }));

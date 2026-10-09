@@ -31,6 +31,10 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
     foundry_total = 0
     foundry_resources_total = 0
     foundry_query_failed = False
+    # 各部分是否成功，用于失败时保留缓存中的旧值
+    rg_ok = False
+    vm_ok = False
+    foundry_ok = False
 
     for a in [x for x in accounts if x.status == "healthy"]:
         try:
@@ -44,6 +48,7 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
                     lambda: list(mgr.resource_client.resource_groups.list()),
                     timeout=20, timeout_msg="资源组查询超时")
                 total_rg += len(rgs or [])
+                rg_ok = True
             except Exception:
                 pass
             # 虚拟机状态计数（30 秒超时）
@@ -71,6 +76,7 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
                 r, s = call_with_timeout(_count_vms, timeout=30, timeout_msg="VM 查询超时")
                 vms_running += r
                 vms_stopped += s
+                vm_ok = True
             except Exception:
                 pass
             # Foundry（总览卡片按 Azure 账号数统计，而不是按资源数量统计。
@@ -84,8 +90,21 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
                 foundry_resources_total += resource_count
                 if resource_count > 0:
                     foundry_total += 1
+                foundry_ok = True
             except Exception:
                 foundry_query_failed = True
+
+    # 如果某部分拉取失败，用缓存中的旧值（避免显示 0）
+    cached = _overview_cache["data"]
+    if cached:
+        if not rg_ok and cached.get("resource_groups", {}).get("total", 0) > 0:
+            total_rg = cached["resource_groups"]["total"]
+        if not vm_ok and cached.get("vms", {}).get("total", 0) > 0:
+            vms_running = cached["vms"].get("running", 0)
+            vms_stopped = cached["vms"].get("stopped", 0)
+        if not foundry_ok and cached.get("foundry", {}).get("total", 0) > 0:
+            foundry_resources_total = cached["foundry"].get("total", 0)
+            foundry_total = cached["foundry"].get("accounts_total", 0)
 
     result = {
         "accounts": {"total": len(accounts), "healthy": healthy, "error": error},
