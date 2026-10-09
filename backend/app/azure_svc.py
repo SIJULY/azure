@@ -132,7 +132,11 @@ def query_cost_range(account_id: int, start: str, end: str, group_by: str = "non
         client_id=profile["client_id"],
         client_secret=profile["client_secret"],
     )
-    token = cred.get_token("https://management.azure.com/.default").token
+    token = call_with_timeout(
+        lambda: cred.get_token("https://management.azure.com/.default").token,
+        timeout=15,
+        timeout_msg="获取 Azure token 超时",
+    )
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     url = (
         f"https://management.azure.com/subscriptions/{profile['subscription_id']}"
@@ -159,7 +163,7 @@ def query_cost_range(account_id: int, start: str, end: str, group_by: str = "non
             raise RuntimeError(f"费用查询失败：{resp.status_code} {resp.text[:200]}")
         return resp.json()
 
-    data = call_with_timeout(_do, timeout_msg="账单查询超时")
+    data = call_with_timeout(_do, timeout=30, timeout_msg="账单查询超时")
     props = data.get("properties", {})
     columns = [c.get("name") for c in props.get("columns", [])]
     rows = props.get("rows", [])

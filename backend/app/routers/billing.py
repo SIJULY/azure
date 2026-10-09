@@ -67,7 +67,11 @@ def billing_range(
 ):
     """按日期区间查询费用（对标 AzureIn 账单页面的查询费用）。"""
     try:
-        return query_cost_range(account_id, start, end, group_by)
+        return call_with_timeout(
+            lambda: query_cost_range(account_id, start, end, group_by),
+            timeout=60,
+            timeout_msg="账单查询超时",
+        )
     except Exception as e:
         raise HTTPException(400, str(e))
 
