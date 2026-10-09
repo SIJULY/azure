@@ -235,6 +235,8 @@ def _connect_fast(mgr: AzureManager, profile: dict, alias: str):
         call_with_timeout(_get_token, timeout=15, timeout_msg="获取 Azure token 超时")
     except Exception as e:
         raise RuntimeError(f"Azure 认证失败：{e}")
+    # 标记已连接，vendor 的 get_regions/get_supported_vm_sizes 等方法依赖此标志
+    mgr.is_connected = True
 
 
 def get_manager(account_id: int, db: Session | None = None, full: bool = False) -> tuple[AzureManager, AzureAccount]:

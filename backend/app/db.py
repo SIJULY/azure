@@ -36,6 +36,8 @@ class AzureAccount(Base):
     status_msg = Column(Text, default="")
     proxy_id = Column(Integer, ForeignKey("proxies.id"), nullable=True)  # 绑定的代理
     last_checked = Column(String(32), nullable=True)   # 最后检测时间
+    supported_regions = Column(Text, default="")        # JSON: 账号支持的区域列表，首次拉取后持久化（不变的数据）
+    region_vm_sizes = Column(Text, default="")         # JSON: {region: [sizes]}，首次拉取后持久化（不变的数据）
     created_at = Column(String(32), default=_now)
     updated_at = Column(String(32), default=_now, onupdate=_now)
 
@@ -131,7 +133,7 @@ def _migrate():
             return {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
         want = {
             "jobs": [("attempts", "INTEGER DEFAULT 1"), ("updated_at", "VARCHAR(32)")],
-            "azure_accounts": [("proxy_id", "INTEGER"), ("last_checked", "VARCHAR(32)")],
+            "azure_accounts": [("proxy_id", "INTEGER"), ("last_checked", "VARCHAR(32)"), ("supported_regions", "TEXT DEFAULT ''"), ("region_vm_sizes", "TEXT DEFAULT ''")],
             "init_scripts": [("os_type", "VARCHAR(16) DEFAULT 'linux'")],
         }
         for table, columns in want.items():

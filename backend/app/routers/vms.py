@@ -101,7 +101,87 @@ class VmActionIn(BaseModel):
 
 
 @router.get("")
-def list_vms(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def list_vms(account_id: int, refresh: bool = False, db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+    try:
+        if refresh:
+            cache_invalidate("_cached_vms")
+        return _cached_vms(account_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(400, f"获取虚拟机列表失败：{e}")
+
+
+def _do_vm_meta(account_id: int, region: str) -> dict:
+    """只从 DB 读取区域和规格（不变的数据，首次通过后台任务或手动触发拉取并保存）。"""
+    import json as _json
+    import re as _re
+    from ..azure_svc import SessionLocal
+    from ..db import AzureAccount
+    db = SessionLocal()
+    try:
+        acct = db.query(AzureAccount).filter_by(id=account_id).first()
+        if not acct:
+            raise RuntimeError("账号不存在")
+        out = {
+            "regions": [],
+            "vm_sizes": [],
+            "os_images": [],
+            "ip_permission": "",
+            "_fetch_ok": True,
+        }
+        # 区域：从 DB 读
+        try:
+            regions = _json.loads(acct.supported_regions) if acct.supported_regions else []
+        except Exception:
+            regions = []
+        for r in regions:
+            m = _re.search(r'\(([^)]+)\)$', r)
+            code = m.group(1).lower() if m else r.lower()
+            out["regions"].append({"code": code, "name_cn": AZURE_REGIONS_CN.get(code, r)})
+        # 规格：从 DB 读
+        if region:
+            try:
+                sizes_map = _json.loads(acct.region_vm_sizes) if acct.region_vm_sizes else {}
+            except Exception:
+                sizes_map = {}
+            out["vm_sizes"] = sizes_map.get(region, [])
+        return out
+    finally:
+        db.close()
+
+
+@cached(ttl=600, validate=lambda d: d.get("_fetch_ok", False))
+def _cached_vms(account_id: int) -> dict:
+    return _do_list_vms(account_id)
+
+
+class VmCreateIn(BaseModel):
+    account_id: int
+    region: str
+    vm_size: str
+    os_image: str = ""
+    os_image_data: dict | None = None
+    disk_size_gb: int = 64
+    disk_type: str = "Premium_LRS"
+    ip_type: str = "Static"
+    vm_name: str = ""
+    username: str = ""
+    password: str = ""
+    ssh_key: str = ""
+    user_data: str = ""
+    dd_system: bool = False
+
+
+class VmActionIn(BaseModel):
+    account_id: int
+    resource_group: str
+    vm_name: str
+    action: str  # start | stop | restart | delete | change_ip
+
+
+@router.get("")
+def list_vms(account_id: int, refresh: bool = False, db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     try:
         if refresh:
             cache_invalidate("_cached_vms")
@@ -113,32 +193,26 @@ def list_vms(account_id: int = Query(...), refresh: bool = Query(False), db: Ses
 
 
 @router.get("/meta")
-def vm_meta(account_id: int = Query(...), region: str = Query(""), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def _cached_vm_meta(account_id: int, region: str) -> dict:
+    return _do_vm_meta(account_id, region)
+
+
+@router.get("/meta")
+def vm_meta(
+    account_id: int,
+    region: str = "",
+    refresh: bool = False,
+    db: Session = Depends(get_db),
+    _u: User = Depends(get_current_user)
+):
     try:
-        mgr, acct = get_manager(account_id, db)
+        if refresh:
+            cache_invalidate("_cached_vm_meta")
+        return _cached_vm_meta(account_id, region)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(400, str(e))
-    try:
-        with proxy_env(acct):
-            regions = mgr.get_regions()
-    except Exception as e:
-        raise HTTPException(400, f"获取区域失败：{e}")
-    out = {
-        "regions": [{"code": r, "name_cn": AZURE_REGIONS_CN.get(r, r)} for r in regions],
-        "vm_sizes": [],
-        "os_images": [],
-        "ip_permission": "",
-    }
-    if region:
-        try:
-            with proxy_env(acct):
-                out["vm_sizes"] = mgr.get_supported_vm_sizes(region)
-                out["ip_permission"] = mgr.get_ip_permission(region)
-                if out["vm_sizes"]:
-                    out["os_images"] = mgr.get_supported_os_images(region, out["vm_sizes"][0])
-        except Exception as e:
-            raise HTTPException(400, f"获取规格/镜像失败：{e}")
-    return out
 
 
 def _do_create_vm(logger, account_id: int, payload: dict):

@@ -31,9 +31,23 @@ function CreateModal({ accounts, onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  const [apiRegions, setApiRegions] = useState([]);
   useEffect(() => {
     if (!f.account_id) return;
     api.get(`/resource-groups?account_id=${f.account_id}`).then((r) => setRgs(r || [])).catch(() => setRgs([]));
+    // 拉取账号支持的区域（非静态全量列表）
+    api.get(`/vms/meta?account_id=${f.account_id}&region=`)
+      .then((d) => {
+        const rs = (d.regions || []).map((r) => [r.code, "", r.name_cn || r.code]);
+        if (rs.length) {
+          setApiRegions(rs);
+          // 如果当前选中的区域不在支持列表中，自动切换到第一个
+          if (!rs.find((x) => x[0] === f.region)) {
+            setF((prev) => ({ ...prev, region: rs[0][0], vm_size: "" }));
+          }
+        }
+      })
+      .catch(() => {});
   }, [f.account_id]);
 
   useEffect(() => {
@@ -97,7 +111,7 @@ function CreateModal({ accounts, onClose, onSaved }) {
         </Field>
         <Field label="区域">
           <Select value={f.region} onChange={(e) => setF({ ...f, region: e.target.value, vm_size: "" })}>
-            {REGIONS.map((r) => <option key={r[0]} value={r[0]}>{regionLabel(r)}</option>)}
+            {(apiRegions.length ? apiRegions : REGIONS).map((r) => <option key={r[0]} value={r[0]}>{regionLabel(r)}</option>)}
           </Select>
         </Field>
         <Field label="规格" required className="col-span-2">
