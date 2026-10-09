@@ -1,7 +1,0 @@
-Flask
-gunicorn
-azure-identity
-azure-mgmt-compute
-azure-mgmt-network
-azure-mgmt-resource
-azure-mgmt-subscription
