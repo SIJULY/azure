@@ -61,7 +61,7 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
     return result
 
 
-@cached(ttl=600, validate=lambda d: bool(d.get("quota_tier")))
+@cached(ttl=600, validate=lambda d: bool(d.get("quota_tier")) and len(d.get("vm_quotas", [])) > 0)
 def _cached_quotas(account_id: int) -> dict:
     from ..azure_svc import SessionLocal
     db = SessionLocal()
