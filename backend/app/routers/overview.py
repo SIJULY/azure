@@ -1,0 +1,97 @@
+"""总览：聚合各账号的资源计数与最近任务。所有 Azure 调用带超时，坏账号跳过。"""
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from ..auth import get_db, get_current_user
+from ..db import AzureAccount, Job, User
+from ..azure_svc import get_manager, proxy_env, call_with_timeout
+
+router = APIRouter(prefix="/overview", tags=["总览"])
+
+# 总览缓存（60 秒），避免每次刷都查 Azure
+_overview_cache = {"data": None, "ts": 0}
+_OVERVIEW_TTL = 60
+
+
+@router.get("")
+def overview(db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+    import time as _time
+    now = _time.time()
+    if _overview_cache["data"] and (now - _overview_cache["ts"]) < _OVERVIEW_TTL:
+        return _overview_cache["data"]
+
+    accounts = db.query(AzureAccount).order_by(AzureAccount.id).all()
+    healthy = sum(1 for a in accounts if a.status == "healthy")
+    error = len(accounts) - healthy
+
+    total_rg = 0
+    vms_running = 0
+    vms_stopped = 0
+    foundry_total = 0
+
+    for a in [x for x in accounts if x.status == "healthy"]:
+        try:
+            mgr, _acct = get_manager(a.id, db)
+        except Exception:
+            continue
+        with proxy_env(_acct):
+            # 资源组（20 秒超时）
+            try:
+                rgs = call_with_timeout(
+                    lambda: list(mgr.resource_client.resource_groups.list()),
+                    timeout=20, timeout_msg="资源组查询超时")
+                total_rg += len(rgs or [])
+            except Exception:
+                pass
+            # 虚拟机状态计数（30 秒超时）
+            try:
+                def _count_vms():
+                    running, stopped = 0, 0
+                    for vm in mgr.compute_client.virtual_machines.list_all():
+                        is_run = False
+                        try:
+                            vid = vm.id or ""
+                            rg = vid.split("/resourceGroups/")[1].split("/")[0] if "/resourceGroups/" in vid else ""
+                            if rg:
+                                detail = mgr.compute_client.virtual_machines.get(rg, vm.name, expand="instanceView")
+                                for st in (detail.instance_view.statuses or []):
+                                    if "running" in (st.code or "").lower():
+                                        is_run = True
+                                        break
+                        except Exception:
+                            pass
+                        if is_run:
+                            running += 1
+                        else:
+                            stopped += 1
+                    return running, stopped
+                r, s = call_with_timeout(_count_vms, timeout=30, timeout_msg="VM 查询超时")
+                vms_running += r
+                vms_stopped += s
+            except Exception:
+                pass
+            # Foundry（CognitiveServices 账号计数，20 秒超时）
+            try:
+                def _count_cs():
+                    from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
+                    cs = CognitiveServicesManagementClient(mgr.credential, mgr.subscription_id)
+                    return len(list(cs.accounts.list()))
+                foundry_total += call_with_timeout(_count_cs, timeout=20, timeout_msg="Foundry 查询超时")
+            except Exception:
+                pass
+
+    recent_jobs = db.query(Job).order_by(Job.created_at.desc()).limit(8).all()
+
+    result = {
+        "accounts": {"total": len(accounts), "healthy": healthy, "error": error},
+        "resource_groups": {"total": total_rg},
+        "vms": {"running": vms_running, "stopped": vms_stopped, "total": vms_running + vms_stopped},
+        "foundry": {"total": foundry_total},
+        "recent_jobs": [
+            {"id": j.id, "type": j.type, "title": j.title, "account_id": j.account_id,
+             "status": j.status, "created_at": j.created_at, "finished_at": j.finished_at}
+            for j in recent_jobs
+        ],
+    }
+    _overview_cache["data"] = result
+    _overview_cache["ts"] = now
+    return result
