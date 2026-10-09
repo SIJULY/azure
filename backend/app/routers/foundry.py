@@ -6,6 +6,7 @@ from ..auth import get_db, get_current_user
 from ..db import AzureAccount, User
 from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache_invalidate
 from ..jobs import create_job, run_in_background
+from ..operations import record_operation
 
 router = APIRouter(prefix="/foundry", tags=["Foundry"])
 
@@ -142,6 +143,7 @@ def foundry_ensure(data: EnsureIn, db: Session = Depends(get_db), _u: User = Dep
     if not db.query(AzureAccount).filter_by(id=data.account_id).first():
         raise HTTPException(404, "账号不存在")
     job_id = create_job("foundry_ensure", f"创建 Foundry 资源 ({data.region})", data.account_id)
+    record_operation(db, "foundry_ensure_submit", f"提交创建 Foundry 资源任务 ({data.region})", resource=data.name or data.resource_group, account_id=data.account_id, operator=_u, detail={"job_id": job_id})
     run_in_background(job_id, _do_ensure, data.account_id, data.region, data.resource_group, data.name)
     return {"job_id": job_id}
 
@@ -176,5 +178,6 @@ def foundry_deploy(data: DeployIn, db: Session = Depends(get_db), _u: User = Dep
         f"部署模型 {data.model_name} ({data.deployment_name})",
         data.account_id,
     )
+    record_operation(db, "foundry_deploy_submit", f"提交部署模型 {data.model_name} 任务", resource=data.deployment_name, account_id=data.account_id, operator=_u, detail={"job_id": job_id, "foundry_name": data.foundry_name})
     run_in_background(job_id, _do_deploy, data.account_id, data.model_dump())
     return {"job_id": job_id}

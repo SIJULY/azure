@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import InitScript, User
+from ..operations import record_operation
 
 router = APIRouter(prefix="/scripts", tags=["初始化脚本"])
 
@@ -40,6 +41,7 @@ def create_script(data: ScriptIn, db: Session = Depends(get_db), _u: User = Depe
     db.add(s)
     db.commit()
     db.refresh(s)
+    record_operation(db, "script_create", f"创建初始化脚本 {s.name}", resource=s.name, operator=_u)
     return _out(s)
 
 
@@ -53,6 +55,7 @@ def update_script(script_id: int, data: ScriptIn, db: Session = Depends(get_db),
     s.content = data.content
     s.os_type = data.os_type or "linux"
     db.commit()
+    record_operation(db, "script_update", f"更新初始化脚本 {s.name}", resource=s.name, operator=_u)
     return _out(s)
 
 
@@ -61,6 +64,8 @@ def delete_script(script_id: int, db: Session = Depends(get_db), _u: User = Depe
     s = db.query(InitScript).filter_by(id=script_id).first()
     if not s:
         raise HTTPException(404, "脚本不存在")
+    name = s.name
     db.delete(s)
     db.commit()
+    record_operation(db, "script_delete", f"删除初始化脚本 {name}", resource=name, operator=_u)
     return {"ok": True}

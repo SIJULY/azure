@@ -105,6 +105,20 @@ class Job(Base):
             return {}
 
 
+class OperationLog(Base):
+    """操作审计日志：记录面板内所有重要用户操作。"""
+    __tablename__ = "operation_logs"
+    id = Column(Integer, primary_key=True)
+    type = Column(String(64), nullable=False)
+    title = Column(String(256), nullable=False)
+    resource = Column(String(256), default="")
+    account_id = Column(Integer, nullable=True)
+    status = Column(String(16), default="success")
+    operator = Column(String(64), default="系统")
+    detail_json = Column(Text, default="{}")
+    created_at = Column(String(32), default=_now)
+
+
 class ApiToken(Base):
     __tablename__ = "api_tokens"
     id = Column(Integer, primary_key=True)

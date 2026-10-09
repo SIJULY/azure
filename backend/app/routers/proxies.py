@@ -7,6 +7,7 @@ from ..auth import get_db, get_current_user
 from ..db import Proxy, AzureAccount, User
 from .. import crypto
 from ..azure_svc import _proxy_url_of
+from ..operations import record_operation
 
 router = APIRouter(prefix="/proxies", tags=["代理"])
 
@@ -66,6 +67,7 @@ def create_proxy(data: ProxyIn, db: Session = Depends(get_db), _u: User = Depend
     db.add(p)
     db.commit()
     db.refresh(p)
+    record_operation(db, "proxy_create", f"创建代理 {p.name}", resource=f"{p.host}:{p.port}", operator=_u)
     return _out(p, db)
 
 
@@ -85,6 +87,7 @@ def update_proxy(proxy_id: int, data: ProxyIn, db: Session = Depends(get_db), _u
         db.query(Proxy).filter(Proxy.id != p.id).update({Proxy.is_default: False})
     p.is_default = data.is_default
     db.commit()
+    record_operation(db, "proxy_update", f"更新代理 {p.name}", resource=f"{p.host}:{p.port}", operator=_u)
     return _out(p, db)
 
 
@@ -96,8 +99,11 @@ def delete_proxy(proxy_id: int, db: Session = Depends(get_db), _u: User = Depend
     bound = db.query(AzureAccount).filter_by(proxy_id=p.id).count()
     if bound:
         raise HTTPException(400, f"该代理正被 {bound} 个 Azure 账号引用，不能删除")
+    name = p.name
+    resource = f"{p.host}:{p.port}"
     db.delete(p)
     db.commit()
+    record_operation(db, "proxy_delete", f"删除代理 {name}", resource=resource, operator=_u)
     return {"ok": True}
 
 
@@ -110,6 +116,7 @@ def test_proxy(proxy_id: int, db: Session = Depends(get_db), _u: User = Depends(
     try:
         s = socket.create_connection((p.host, p.port), timeout=8)
         s.close()
+        record_operation(db, "proxy_test", f"测试代理 {p.name}", resource=f"{p.host}:{p.port}", operator=_u)
         return {"ok": True, "message": f"{p.host}:{p.port} 连接成功"}
     except Exception as e:
         raise HTTPException(400, f"连接失败：{e}")

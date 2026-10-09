@@ -7,6 +7,7 @@ from ..auth import get_db, get_current_user
 from ..db import AzureAccount, Proxy, User
 from .. import crypto
 from ..azure_svc import test_connection
+from ..operations import record_operation
 
 router = APIRouter(prefix="/accounts", tags=["Azure 账号"])
 
@@ -70,6 +71,7 @@ def test_credentials(data: CredTestIn, db: Session = Depends(get_db), _u: User =
                     for s in sc.subscriptions.list()
                 ]
             subs = call_with_timeout(_list_subs, timeout=30, timeout_msg="查询订阅超时")
+        record_operation(db, "account_test_credentials", "测试 Azure 凭据", resource=data.client_id.strip(), operator=_u)
         return {"ok": True, "subscriptions": subs}
     except HTTPException:
         raise
@@ -174,6 +176,7 @@ def create_account(data: AccountIn, db: Session = Depends(get_db), _u: User = De
     db.add(a)
     db.commit()
     db.refresh(a)
+    record_operation(db, "account_create", f"创建 Azure 账号 {a.alias}", resource=a.alias, account_id=a.id, operator=_u)
     return _to_out(a, db)
 
 
@@ -200,6 +203,7 @@ def update_account(account_id: int, data: AccountIn, db: Session = Depends(get_d
     a.status = "healthy"
     a.status_msg = ""
     db.commit()
+    record_operation(db, "account_update", f"更新 Azure 账号 {a.alias}", resource=a.alias, account_id=a.id, operator=_u)
     return _to_out(a, db)
 
 
@@ -208,8 +212,10 @@ def delete_account(account_id: int, db: Session = Depends(get_db), _u: User = De
     a = db.query(AzureAccount).filter_by(id=account_id).first()
     if not a:
         raise HTTPException(404, "账号不存在")
+    alias = a.alias
     db.delete(a)
     db.commit()
+    record_operation(db, "account_delete", f"删除 Azure 账号 {alias}", resource=alias, account_id=account_id, operator=_u)
     return {"ok": True}
 
 
@@ -221,6 +227,7 @@ def test_account(account_id: int, db: Session = Depends(get_db), _u: User = Depe
     result = _do_test(a, db)
     if not result["ok"]:
         raise HTTPException(400, f"连接测试失败：{result['error']}")
+    record_operation(db, "account_test", f"测试 Azure 账号 {a.alias}", resource=a.alias, account_id=a.id, operator=_u)
     return result
 
 
@@ -231,6 +238,7 @@ def batch_refresh(db: Session = Depends(get_db), _u: User = Depends(get_current_
     for a in db.query(AzureAccount).order_by(AzureAccount.id).all():
         r = _do_test(a, db)
         results.append({"id": a.id, "alias": a.alias, **r})
+    record_operation(db, "account_batch_refresh", f"批量刷新 {len(results)} 个 Azure 账号", resource="Azure 账号", operator=_u, detail={"count": len(results)})
     return results
 
 
@@ -244,6 +252,7 @@ def batch_delete(ids: list[int], db: Session = Depends(get_db), _u: User = Depen
             db.delete(a)
             n += 1
     db.commit()
+    record_operation(db, "account_batch_delete", f"批量删除 {n} 个 Azure 账号", resource="Azure 账号", operator=_u, detail={"ids": ids, "deleted": n})
     return {"ok": True, "deleted": n}
 
 
@@ -275,4 +284,6 @@ def batch_import(data: BatchImportIn, db: Session = Depends(get_db), _u: User = 
         db.add(a)
         db.commit()
         results.append({"alias": item.alias, "ok": True, "id": a.id})
+    ok_count = sum(1 for r in results if r.get("ok"))
+    record_operation(db, "account_batch_import", f"批量导入 {ok_count} 个 Azure 账号", resource="Azure 账号", operator=_u, detail={"total": len(results), "ok": ok_count})
     return results

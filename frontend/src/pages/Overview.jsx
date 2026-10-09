@@ -151,6 +151,7 @@ function fmtTime(value) {
 }
 
 function jobResource(job) {
+  if (job.resource) return job.resource;
   if (job.account_id !== undefined && job.account_id !== null) return `账号 #${job.account_id}`;
   return (job.id || "").slice(0, 12) || "—";
 }
@@ -198,7 +199,7 @@ function RecentJobs({ jobs }) {
                     <div className="font-mono text-[13px] font-semibold text-slate-950">{jobResource(j)}</div>
                     <div className="mt-1 text-slate-500">{j.type || "Azure"}</div>
                   </td>
-                  <td className="px-5 py-5 text-slate-500">系统</td>
+                  <td className="px-5 py-5 text-slate-500">{j.operator || "系统"}</td>
                   <td className="px-7 py-5"><StatusBadge status={j.status} /></td>
                 </tr>
               ))}

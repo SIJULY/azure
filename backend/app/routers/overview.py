@@ -2,8 +2,9 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
-from ..db import AzureAccount, Job, User
+from ..db import AzureAccount, User
 from ..azure_svc import get_manager, proxy_env, call_with_timeout
+from ..operations import recent_activities
 from .foundry import is_foundry_account
 
 router = APIRouter(prefix="/overview", tags=["总览"])
@@ -86,18 +87,12 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
             except Exception:
                 foundry_query_failed = True
 
-    recent_jobs = db.query(Job).order_by(Job.created_at.desc()).limit(8).all()
-
     result = {
         "accounts": {"total": len(accounts), "healthy": healthy, "error": error},
         "resource_groups": {"total": total_rg},
         "vms": {"running": vms_running, "stopped": vms_stopped, "total": vms_running + vms_stopped},
         "foundry": {"total": foundry_resources_total, "resources_total": foundry_resources_total, "accounts_total": foundry_total, "partial": foundry_query_failed},
-        "recent_jobs": [
-            {"id": j.id, "type": j.type, "title": j.title, "account_id": j.account_id,
-             "status": j.status, "created_at": j.created_at, "finished_at": j.finished_at}
-            for j in recent_jobs
-        ],
+        "recent_jobs": recent_activities(db, 8),
     }
     _overview_cache["data"] = result
     _overview_cache["ts"] = now

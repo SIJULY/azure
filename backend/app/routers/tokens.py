@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user, new_api_token, hash_token
 from ..db import ApiToken, User
+from ..operations import record_operation
 
 router = APIRouter(prefix="/tokens", tags=["API 访问"])
 
@@ -30,6 +31,7 @@ def create_token(data: TokenIn, db: Session = Depends(get_db), _u: User = Depend
     db.add(rec)
     db.commit()
     db.refresh(rec)
+    record_operation(db, "token_create", f"生成 API Token {rec.name}", resource=rec.prefix, operator=_u)
     return {"id": rec.id, "name": rec.name, "token": token}
 
 
@@ -38,6 +40,9 @@ def revoke_token(token_id: int, db: Session = Depends(get_db), _u: User = Depend
     t = db.query(ApiToken).filter_by(id=token_id).first()
     if not t:
         raise HTTPException(404, "Token 不存在")
+    name = t.name
+    prefix = t.prefix
     db.delete(t)
     db.commit()
+    record_operation(db, "token_revoke", f"撤销 API Token {name}", resource=prefix, operator=_u)
     return {"ok": True}

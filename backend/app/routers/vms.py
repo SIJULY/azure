@@ -6,6 +6,7 @@ from ..auth import get_db, get_current_user
 from ..db import User, AzureAccount
 from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache_invalidate
 from ..jobs import create_job, run_in_background
+from ..operations import record_operation
 from ..vendor.azure_manager import AZURE_REGIONS_CN
 
 router = APIRouter(prefix="/vms", tags=["虚拟机"])
@@ -267,6 +268,7 @@ def create_vm(data: VmCreateIn, db: Session = Depends(get_db), _u: User = Depend
     payload["custom_username"] = payload.get("username") or ""
     payload["custom_password"] = payload.get("password") or ""
     job_id = create_job("create_vm", f"创建虚拟机 ({data.region} / {data.vm_size})", data.account_id)
+    record_operation(db, "vm_create_submit", f"提交创建虚拟机任务 ({data.region} / {data.vm_size})", resource=job_id, account_id=data.account_id, operator=_u)
     run_in_background(job_id, _do_create_vm, data.account_id, payload)
     return {"job_id": job_id}
 
@@ -301,6 +303,7 @@ def vm_action(data: VmActionIn, db: Session = Depends(get_db), _u: User = Depend
         raise HTTPException(404, "账号不存在")
     title = f"{_ACTION_TITLES[data.action]}虚拟机 {data.vm_name}"
     job_id = create_job("vm_action", title, data.account_id)
+    record_operation(db, "vm_action_submit", f"提交{title}任务", resource=data.vm_name, account_id=data.account_id, operator=_u, detail={"job_id": job_id, "resource_group": data.resource_group, "action": data.action})
     run_in_background(job_id, _do_vm_action, data.account_id, data.resource_group, data.vm_name, data.action)
     return {"job_id": job_id}
 

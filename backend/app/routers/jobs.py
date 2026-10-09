@@ -3,28 +3,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import Job, User
+from ..operations import job_out, recent_activities, record_operation
 
 router = APIRouter(prefix="/jobs", tags=["任务中心"])
 
 
 def _out(j: Job, with_logs: bool = False) -> dict:
-    d = {
-        "id": j.id, "type": j.type, "title": j.title,
-        "account_id": j.account_id, "status": j.status,
-        "attempts": j.attempts or 1,
-        "result": j.result(),
-        "created_at": j.created_at, "updated_at": j.updated_at,
-        "finished_at": j.finished_at,
-    }
-    if with_logs:
-        d["logs"] = j.logs()
-    return d
+    return job_out(j, with_logs=with_logs)
 
 
 @router.get("")
 def list_jobs(limit: int = Query(50, le=200), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
-    jobs = db.query(Job).order_by(Job.created_at.desc()).limit(limit).all()
-    return [_out(j) for j in jobs]
+    return recent_activities(db, limit)
 
 
 @router.get("/{job_id}")
@@ -42,4 +32,5 @@ def delete_job(job_id: str, db: Session = Depends(get_db), _u: User = Depends(ge
         raise HTTPException(404, "任务不存在")
     db.delete(j)
     db.commit()
+    record_operation(db, "job_delete", f"删除任务 {job_id}", resource=job_id, operator=_u)
     return {"ok": True}

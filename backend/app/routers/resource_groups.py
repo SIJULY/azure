@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import User
 from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache_invalidate
+from ..operations import record_operation
 
 router = APIRouter(prefix="/resource-groups", tags=["资源组"])
 
@@ -95,6 +96,7 @@ def create_resource_group(data: RgCreate, db: Session = Depends(get_db), _u: Use
                     data.name.strip(), {"location": data.location.strip(), "tags": tag_dict}),
                 timeout=30, timeout_msg="创建资源组超时")
         cache_invalidate("_cached_rgs")
+        record_operation(db, "resource_group_create", f"创建资源组 {rg.name}", resource=rg.name, account_id=data.account_id, operator=_u)
         return {"ok": True, "name": rg.name, "location": rg.location}
     except HTTPException:
         raise
@@ -123,6 +125,7 @@ def delete_resource_group(data: RgDelete, db: Session = Depends(get_db), _u: Use
                 timeout=30, timeout_msg="删除资源组超时")
             # 等待删除完成（最多 120 秒）
             call_with_timeout(lambda: poller.result(), timeout=120, timeout_msg="删除资源组超时")
+        record_operation(db, "resource_group_delete", f"删除资源组 {data.name.strip()}", resource=data.name.strip(), account_id=data.account_id, operator=_u)
         return {"ok": True}
     except HTTPException:
         raise
