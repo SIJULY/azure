@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import User, AzureAccount
-from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached
+from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache_invalidate
 from ..jobs import create_job, run_in_background
 from ..vendor.azure_manager import AZURE_REGIONS_CN
 
@@ -136,20 +136,25 @@ def _do_vm_meta(account_id: int, region: str) -> dict:
         except Exception:
             regions = []
         if not regions:
-            mgr, _a = get_manager(account_id, db)
-            with proxy_env(_a):
-                regions = call_with_timeout(
-                    lambda: mgr.get_regions(),
-                    timeout=45, timeout_msg="区域查询超时")
-            if not regions:
-                raise RuntimeError("Azure 返回的区域列表为空")
-            acct.supported_regions = _json.dumps(regions, ensure_ascii=False)
-            db.commit()
+            try:
+                mgr, _a = get_manager(account_id, db)
+                with proxy_env(_a):
+                    regions = call_with_timeout(
+                        lambda: mgr.get_regions(),
+                        timeout=45, timeout_msg="区域查询超时")
+                if regions:
+                    acct.supported_regions = _json.dumps(regions, ensure_ascii=False)
+                    db.commit()
+            except Exception:
+                regions = []  # 超时不抛 500，返回空
+        if not regions and not acct.supported_regions:
+            # DB 和 API 都没有，返回空（前端显示提示）
+            pass
         for r in regions:
             m = _re.search(r'\(([^)]+)\)$', r)
             code = m.group(1).lower() if m else r.lower()
             out["regions"].append({"code": code, "name_cn": AZURE_REGIONS_CN.get(code, r)})
-        # 规格：先读 DB，为空则从 Azure 拉取并保存
+        # 规格：先读 DB，为空则从 Azure 拉取并保存（超时不抛错，返回空让前端转手动输入）
         if region:
             try:
                 sizes_map = _json.loads(acct.region_vm_sizes) if acct.region_vm_sizes else {}
@@ -157,15 +162,18 @@ def _do_vm_meta(account_id: int, region: str) -> dict:
                 sizes_map = {}
             sizes = sizes_map.get(region, [])
             if not sizes:
-                mgr, _a = get_manager(account_id, db)
-                with proxy_env(_a):
-                    sizes = call_with_timeout(
-                        lambda: mgr.get_supported_vm_sizes(region),
-                        timeout=45, timeout_msg="规格查询超时") or []
-                if sizes:
-                    sizes_map[region] = sizes
-                    acct.region_vm_sizes = _json.dumps(sizes_map, ensure_ascii=False)
-                    db.commit()
+                try:
+                    mgr, _a = get_manager(account_id, db)
+                    with proxy_env(_a):
+                        sizes = call_with_timeout(
+                            lambda: mgr.get_supported_vm_sizes(region),
+                            timeout=45, timeout_msg="规格查询超时") or []
+                    if sizes:
+                        sizes_map[region] = sizes
+                        acct.region_vm_sizes = _json.dumps(sizes_map, ensure_ascii=False)
+                        db.commit()
+                except Exception:
+                    sizes = []  # 超时/失败不抛 500，前端显示手动输入
             out["vm_sizes"] = sizes
         return out
     finally:

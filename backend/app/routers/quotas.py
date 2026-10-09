@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import User
-from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached
+from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache_invalidate
 
 router = APIRouter(prefix="/quotas", tags=["资源配额"])
 
@@ -63,7 +63,7 @@ def _cached_quotas(account_id: int) -> dict:
 
 
 @router.get("")
-def quotas(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def quotas(account_id: int = Query(...), refresh: bool = False, db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     try:
         if refresh:
             cache_invalidate("_cached_quotas")

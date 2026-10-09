@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..auth import get_db, get_current_user
 from ..db import AzureAccount, User
-from ..azure_svc import get_manager, proxy_env, call_with_timeout, query_cost_range, cached
+from ..azure_svc import get_manager, proxy_env, call_with_timeout, query_cost_range, cached, cache_invalidate
 
 router = APIRouter(prefix="/billing", tags=["账单费用"])
 
@@ -42,7 +42,7 @@ def _cached_billing(account_id: int) -> dict:
 
 
 @router.get("")
-def billing(account_id: int = Query(...), refresh: bool = Query(False), db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
+def billing(account_id: int = Query(...), refresh: bool = False, db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     try:
         if refresh:
             cache_invalidate("_cached_billing")
