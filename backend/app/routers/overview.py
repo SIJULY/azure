@@ -31,8 +31,6 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
     foundry_total = 0
     foundry_resources_total = 0
     foundry_query_failed = False
-    # 跟踪是否有任何 Azure 调用成功，用于决定是否缓存
-    any_success = False
 
     for a in [x for x in accounts if x.status == "healthy"]:
         try:
@@ -46,7 +44,6 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
                     lambda: list(mgr.resource_client.resource_groups.list()),
                     timeout=20, timeout_msg="资源组查询超时")
                 total_rg += len(rgs or [])
-                any_success = True
             except Exception:
                 pass
             # 虚拟机状态计数（30 秒超时）
@@ -74,7 +71,6 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
                 r, s = call_with_timeout(_count_vms, timeout=30, timeout_msg="VM 查询超时")
                 vms_running += r
                 vms_stopped += s
-                any_success = True
             except Exception:
                 pass
             # Foundry（总览卡片按 Azure 账号数统计，而不是按资源数量统计。
@@ -88,7 +84,6 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
                 foundry_resources_total += resource_count
                 if resource_count > 0:
                     foundry_total += 1
-                any_success = True
             except Exception:
                 foundry_query_failed = True
 
@@ -99,8 +94,6 @@ def overview(refresh: bool = Query(False), db: Session = Depends(get_db), _u: Us
         "foundry": {"total": foundry_resources_total, "resources_total": foundry_resources_total, "accounts_total": foundry_total, "partial": foundry_query_failed},
         "recent_jobs": recent_activities(db, 8),
     }
-    # 只有至少一个 Azure 调用成功时才缓存，避免缓存全 0 的错误数据
-    if any_success:
-        _overview_cache["data"] = result
-        _overview_cache["ts"] = now
+    _overview_cache["data"] = result
+    _overview_cache["ts"] = now
     return result
