@@ -3,7 +3,8 @@ import { api } from "../api.js";
 import { AccountSelect, Badge, Btn, Card, EmptyState, Field, Input, Loading, PageHead, Select, Table, Td, useToast } from "../ui.jsx";
 
 function fmt(d) {
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  
 }
 
 /* ---------- SVG 折线图 ---------- */
@@ -68,7 +69,8 @@ export default function Billing() {
   const [accounts, setAccounts] = useState([]);
   const [tiers, setTiers] = useState({});
   const [f, setF] = useState(() => {
-    const end = new Date(); const start = new Date(); start.setDate(start.getDate() - 8);
+    const end = new Date(); 
+    const start = new Date(end.getFullYear(), end.getMonth(), 1);
     return { account_id: "", start: fmt(start), end: fmt(end), group_by: "resource_group", cost_type: "actual" };
   });
   const [data, setData] = useState(null);
@@ -152,7 +154,17 @@ export default function Billing() {
       {data?.warning && <p className="text-[13px] text-amber-600 mb-4">{data.warning}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <Card title="区间总费用" sub="Azure Cost Management 返回的税前费用合计。">
+        <Card 
+          title="区间总费用" 
+          sub="Azure Cost Management 返回的税前费用合计。"
+          extra={
+            <button onClick={() => query(true)} disabled={loading} className="text-slate-400 hover:text-blue-500 transition-colors" title="强制刷新">
+              <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          }
+        >
           {loading ? <Loading text="拉取账单..." /> : hasData ? (
             <>
               <div className="text-[32px] font-bold text-slate-900">

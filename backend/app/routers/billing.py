@@ -51,7 +51,7 @@ def _decorate_range_result(data: dict, *, cached_hit: bool, generated_at: dateti
         "stale": stale,
         "generated_at": _dt_s(generated_at),
         "expires_at": _dt_s(expires_at),
-        "cache_ttl_seconds": BILLING_RANGE_TTL_SECONDS,
+        "cache_ttl_seconds": int((expires_at - _utc_now()).total_seconds()),
         "source": "cache" if cached_hit else "azure",
     })
     if warning:
@@ -171,7 +171,7 @@ def billing_range(
     row = db.query(ResourceCache).filter_by(key=key).first()
     if row and row.data_json and not force_refresh:
         updated = _parse_dt(row.updated_at) or now
-        expires = updated + timedelta(seconds=BILLING_RANGE_TTL_SECONDS)
+        expires = updated.replace(hour=23, minute=59, second=59)
         if now < expires:
             try:
                 return _decorate_range_result(json.loads(row.data_json), cached_hit=True, generated_at=updated, expires_at=expires)
@@ -192,6 +192,7 @@ def billing_range(
             "cost_type": cost_type,
         })
         generated = _utc_now()
+        expires = generated.replace(hour=23, minute=59, second=59)
         if row is None:
             row = ResourceCache(key=key)
             db.add(row)
@@ -204,7 +205,7 @@ def billing_range(
             data,
             cached_hit=False,
             generated_at=generated,
-            expires_at=generated + timedelta(seconds=BILLING_RANGE_TTL_SECONDS),
+            expires_at=expires,
         )
     except Exception as e:
         err = str(e)
@@ -213,12 +214,13 @@ def billing_range(
             db.commit()
             if row.data_json:
                 updated = _parse_dt(row.updated_at) or now
+                expires = updated.replace(hour=23, minute=59, second=59)
                 try:
                     return _decorate_range_result(
                         json.loads(row.data_json),
                         cached_hit=True,
                         generated_at=updated,
-                        expires_at=updated + timedelta(seconds=BILLING_RANGE_TTL_SECONDS),
+                        expires_at=expires,
                         stale=True,
                         warning=f"Azure 实时刷新失败，已返回上次缓存数据：{err[:200]}",
                     )
