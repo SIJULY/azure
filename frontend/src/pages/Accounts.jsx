@@ -18,13 +18,6 @@ const toFlagEmoji = (code) => {
   return cc.replace(/./g, (ch) => String.fromCodePoint(127397 + ch.charCodeAt(0)));
 };
 
-const CountryMark = ({ code }) => {
-  const cc = String(code || "").trim().toUpperCase();
-  const flag = toFlagEmoji(cc);
-  if (flag) return <span className="text-base leading-none" title={`注册国家/地区：${cc}`}>{flag}</span>;
-  return <span className="text-[12px] text-slate-300" title="暂未检测到注册国家/地区">—</span>;
-};
-
 const formatDateTime = (value) => {
   if (!value) return "—";
   const normalized = String(value).replace(" ", "T");
@@ -314,7 +307,7 @@ const STATUS_OPTS = [
   ["inactive", "非活跃"], ["disabled", "已禁用"], ["verifying", "验证中"], ["unchecked", "未检查"],
 ];
 
-function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, loading, sel, toggle, toggleAll, refreshAll, setImportOpen, setAddOpen, setConfirmDel, testing, testOne, setEditInit }) {
+function AccountsView({ query, statusF, setStatusF, filtered, items, loading, sel, toggle, toggleAll, refreshAll, setImportOpen, setAddOpen, setConfirmDel, testing, testOne, setEditInit }) {
   return (
     <>
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -350,7 +343,7 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                 <Svg d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
               </span>
-              <Input placeholder="搜索账户名称、Tenant ID 或订阅 ID" className="h-9 rounded-md pl-10 text-sm" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <Input placeholder="搜索账户名称或订阅 ID" className="h-9 rounded-md pl-10 text-sm" value={query} readOnly />
             </div>
             <Select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="h-9 w-full rounded-md sm:w-36 text-sm">
               {STATUS_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
@@ -375,26 +368,19 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
             <>
               <div className="w-full overflow-hidden">
                 <table className="w-full table-fixed text-left text-sm">
-                  <colgroup>
-                    <col className="w-[27%]" />
-                    <col className="w-[16%]" />
-                    <col className="w-[20%]" />
-                    <col className="w-[13%]" />
-                    <col className="w-[12%]" />
-                    <col className="w-[12%]" />
-                  </colgroup>
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
-                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">名称</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">账户类型</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle text-center pl-8">代理</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">订阅状态</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">最后检测</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">操作</th>
+                      <th className="w-[33%] px-3 h-10 font-medium text-xs align-middle text-center">名称</th>
+                      <th className="w-[18%] px-3 h-10 font-medium text-xs align-middle text-center">账户类型</th>
+                      <th className="w-[22%] px-3 h-10 font-medium text-xs align-middle pl-8 text-center">代理</th>
+                      <th className="w-[12%] px-3 h-10 font-medium text-xs align-middle text-center">订阅状态</th>
+                      <th className="w-[10%] px-3 h-10 font-medium text-xs align-middle text-center">最后检测</th>
+                      <th className="w-[5%] px-3 h-10 font-medium text-xs align-middle text-center">操作</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((a) => {
+                      const flag = toFlagEmoji(a.country_code);
                       return (
                         <tr key={a.id} className="border-b border-slate-100 transition hover:bg-slate-50/70">
                           <td className="p-3 align-middle">
@@ -404,23 +390,24 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
                               <div className="min-w-0 flex-1">
                                 <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-950">
                                   <span className="truncate" title={a.alias}>{a.alias}</span>
-                                  <CountryMark code={a.country_code} />
+                                  {flag && <span className="shrink-0" title={a.country_code}>{flag}</span>}
                                 </div>
-                                <div className="mt-1 truncate font-mono text-[12px] leading-5 text-slate-500" title={a.tenant_id || "—"}>{a.tenant_id || "—"}</div>
+                                <div className="mt-1 truncate font-mono text-[12px] text-slate-500" title={`ID: ${a.id}`}>ID: {a.id}</div>
                               </div>
                             </div>
                           </td>
                           <td className="p-3 align-middle">
                             <Badge color="blue" className="max-w-full rounded-full px-3 py-1 text-[13px]">
-                              <span className="mr-1 shrink-0">◇</span><span className="min-w-0 truncate" title={a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}</span>
+                              <span className="mr-1 shrink-0">◇</span>
+                              <span className="min-w-0 truncate" title={a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}</span>
                             </Badge>
                           </td>
-                          <td className="p-3 align-middle pl-8">
-                            {a.proxy_url || a.proxy_name ? <div className="truncate font-mono text-[13px] leading-5 text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
+                          <td className="p-3 align-middle pl-8 text-center">
+                            {a.proxy_url || a.proxy_name ? <div className="truncate text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
                           </td>
-                          <td className="p-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
-                          <td className="p-3 align-middle truncate text-slate-500" title={formatDateTime(a.last_checked)}>{formatDateTime(a.last_checked)}</td>
-                          <td className="p-3 align-middle">
+                          <td className="p-3 align-middle text-center"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
+                          <td className="p-3 align-middle truncate text-slate-500 text-center" title={formatDateTime(a.last_checked)}>{formatDateTime(a.last_checked)}</td>
+                          <td className="p-3 align-middle text-center">
                             <div className="flex items-center justify-center gap-1 whitespace-nowrap">
                               <ActionButton title="重新检测账户状态" onClick={() => testOne(a)} disabled={testing === a.id}><Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" /></ActionButton>
                               <ActionButton title="编辑" onClick={() => setEditInit(a)}><Svg d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></ActionButton>
@@ -443,7 +430,7 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
 }
 
 export default function Accounts() {
-  const [query, setQuery] = useSearch();
+  const [query] = useSearch();
   const toast = useToast();
   const [items, setItems] = useState([]);
   const [proxies, setProxies] = useState([]);
@@ -478,11 +465,7 @@ export default function Accounts() {
     const q = query.trim().toLowerCase();
     return items.filter((a) => {
       if (statusF !== "all" && a.status !== statusF) return false;
-      if (q && !(
-        (a.alias || "").toLowerCase().includes(q) ||
-        (a.tenant_id || "").toLowerCase().includes(q) ||
-        (a.subscription_id || "").toLowerCase().includes(q)
-      )) return false;
+      if (q && !((a.alias || "").toLowerCase().includes(q) || (a.subscription_id || "").toLowerCase().includes(q))) return false;
       return true;
     });
   }, [items, query, statusF]);
@@ -523,7 +506,6 @@ export default function Accounts() {
     <>
       <AccountsView
         query={query}
-        setQuery={setQuery}
         statusF={statusF}
         setStatusF={setStatusF}
         filtered={filtered}
