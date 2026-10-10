@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Badge, Btn, Card, EmptyState, Field, Input, Loading, PageHead, Table, Td, useToast } from "../ui.jsx";
+import { Badge, Btn, Card, EmptyState, Field, Input, Loading, PageHead, Select, Table, Td, useToast } from "../ui.jsx";
 
 function fmt(d) {
   return d.toISOString().slice(0, 10);
@@ -163,17 +163,15 @@ export default function Billing() {
           <Field label="开始"><Input type="date" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} /></Field>
           <Field label="结束"><Input type="date" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} /></Field>
           <Field label="分组">
-            <select value={f.group_by} onChange={(e) => setF({ ...f, group_by: e.target.value })}
-              className="w-full text-[13px] border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <Select value={f.group_by} onChange={(e) => setF({ ...f, group_by: e.target.value })}>
               {GROUP_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-            </select>
+            </Select>
           </Field>
           <Field label="费用类型">
-            <select value={f.cost_type} onChange={(e) => setF({ ...f, cost_type: e.target.value })}
-              className="w-full text-[13px] border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <Select value={f.cost_type} onChange={(e) => setF({ ...f, cost_type: e.target.value })}>
               <option value="actual">实际费用</option>
               <option value="amortized">摊销费用</option>
-            </select>
+            </Select>
           </Field>
           <Btn onClick={query} disabled={loading}>{loading ? "查询中..." : "查询费用"}</Btn>
         </div>
