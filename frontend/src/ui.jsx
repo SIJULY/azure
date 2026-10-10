@@ -1,21 +1,26 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { Link } from "react-router-dom";
+import { Card as ShadcnCard, CardHeader, CardTitle, CardDescription, CardContent } from "./components/ui/card.jsx";
+import { Button } from "./components/ui/button.jsx";
+import { Input as ShadcnInput } from "./components/ui/input.jsx";
+import { Badge as ShadcnBadge } from "./components/ui/badge.jsx";
+import { cn } from "./lib/utils.js";
 
 /* ---------- 卡片 ---------- */
 export function Card({ title, sub, extra, children, className = "" }) {
   return (
-    <div className={`bg-white border border-slate-200 rounded-xl ${className}`}>
+    <ShadcnCard className={className}>
       {(title || extra) && (
-        <div className="flex items-start justify-between p-4 pb-2">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
           <div>
-            {title && <h3 className="text-[14px] font-semibold text-slate-900">{title}</h3>}
-            {sub && <p className="text-[12px] text-slate-500 mt-0.5">{sub}</p>}
+            {title && <CardTitle className="text-sm">{title}</CardTitle>}
+            {sub && <CardDescription className="mt-1">{sub}</CardDescription>}
           </div>
           {extra && <div className="flex items-center gap-2 shrink-0">{extra}</div>}
-        </div>
+        </CardHeader>
       )}
-      <div className="px-4 pb-4">{children}</div>
-    </div>
+      <CardContent className={title || extra ? "" : "pt-6"}>{children}</CardContent>
+    </ShadcnCard>
   );
 }
 
@@ -34,28 +39,29 @@ export function PageHead({ crumb, sub }) {
 }
 
 /* ---------- 按钮 ---------- */
-const btnBase =
-  "inline-flex items-center justify-center gap-1.5 text-sm font-medium rounded-md px-4 h-9 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
-const btnVariants = {
-  primary: "bg-blue-600 hover:bg-blue-700 text-white",
-  secondary: "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50",
-  dangerOutline: "bg-white border border-red-300 text-red-600 hover:bg-red-50",
-  danger: "bg-red-600 hover:bg-red-700 text-white",
-  ghost: "text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-2",
-  dark: "bg-slate-900 hover:bg-slate-800 text-white",
+const btnVariantMap = {
+  primary: "default",
+  secondary: "secondary",
+  dangerOutline: "outline",
+  danger: "destructive",
+  ghost: "ghost",
+  dark: "default",
 };
 export function Btn({ variant = "primary", className = "", ...rest }) {
-  return (
-    <button className={`${btnBase} ${btnVariants[variant] || ""} ${className}`} {...rest} />
-  );
+  const v = btnVariantMap[variant] || "default";
+  return <Button variant={v} className={cn(variant === "dangerOutline" && "text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive", className)} {...rest} />;
 }
 
 /* ---------- 表单 ---------- */
-const inputCls =
-  "w-full text-[13px] border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400";
-export const Input = (p) => <input {...p} className={`${inputCls} ${p.className || ""}`} />;
+export const Input = (p) => <ShadcnInput {...p} className={cn(p.className)} />;
 export const Select = (p) => (
-  <select {...p} className={`${inputCls} ${p.className || ""}`}>
+  <select
+    {...p}
+    className={cn(
+      "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+      p.className
+    )}
+  >
     {p.children}
   </select>
 );
@@ -105,24 +111,24 @@ export function Modal({ title, onClose, children, wide = false, className = "", 
 /* ---------- 表格 ---------- */
 export function Table({ cols, children, className = "" }) {
   return (
-    <div className={`overflow-x-auto -mx-5 px-5 ${className}`}>
-      <table className="w-full text-[13px]">
-        <thead>
-          <tr className="bg-slate-50 text-slate-500 text-left">
+    <div className={cn("relative w-full overflow-auto", className)}>
+      <table className="w-full caption-bottom text-sm">
+        <thead className="[&_tr]:border-b">
+          <tr className="border-b transition-colors">
             {cols.map((c, i) => (
-              <th key={i} className="font-medium px-3 py-2.5 whitespace-nowrap first:rounded-l-lg last:rounded-r-lg">
+              <th key={i} className="h-10 px-2 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">
                 {c}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">{children}</tbody>
+        <tbody className="[&_tr:last-child]:border-0">{children}</tbody>
       </table>
     </div>
   );
 }
 export const Td = (p) => (
-  <td {...p} className={`px-3 py-3 text-slate-700 align-middle ${p.className || ""}`} />
+  <td {...p} className={cn("p-2 align-middle", p.className)} />
 );
 
 /* ---------- 空状态 ---------- */
@@ -136,20 +142,29 @@ export function EmptyState({ icon = "📦", text }) {
 }
 
 /* ---------- 徽章 ---------- */
-const badgeColors = {
-  gray: "bg-slate-100 text-slate-600",
-  blue: "bg-blue-50 text-blue-700",
-  green: "bg-green-50 text-green-700",
-  red: "bg-red-50 text-red-700",
-  amber: "bg-amber-50 text-amber-700",
+const badgeVariantMap = {
+  gray: "secondary",
+  blue: "default",
+  green: "default",
+  red: "destructive",
+  amber: "secondary",
+  yellow: "secondary",
 };
 export function Badge({ color = "gray", children, className = "" }) {
+  const v = badgeVariantMap[color] || "secondary";
   return (
-    <span
-      className={`inline-flex items-center text-[12px] font-medium px-2 py-0.5 rounded-full ${badgeColors[color]} ${className}`}
+    <ShadcnBadge
+      variant={v}
+      className={cn(
+        color === "green" && "bg-green-100 text-green-800 border-transparent hover:bg-green-100",
+        color === "blue" && "bg-blue-100 text-blue-800 border-transparent hover:bg-blue-100",
+        color === "amber" && "bg-amber-100 text-amber-800 border-transparent hover:bg-amber-100",
+        color === "yellow" && "bg-yellow-100 text-yellow-800 border-transparent hover:bg-yellow-100",
+        className
+      )}
     >
       {children}
-    </span>
+    </ShadcnBadge>
   );
 }
 
