@@ -284,7 +284,14 @@ class AzureManager:
                             break
                 if tier_name:
                     _log(f"付费层级查询完成: {tier_name}")
-                    return True, {"quota_tier": str(tier_name)}, ""
+                    result_data = {
+                        "quota_tier": str(tier_name),
+                        "upgrade_available": props.get("upgradeAvailabilityStatus"),
+                        "upgrade_applicable_date": props.get("upgradeApplicableDate"),
+                        "upgrade_unavailability_reason": props.get("upgradeUnavailabilityReason"),
+                        "assignment_date": props.get("assignmentDate"),
+                    }
+                    return True, result_data, ""
                 _log("付费层级查询完成: 未识别到层级信息", "WARN")
                 return True, {"quota_tier": "未知"}, ""
             if resp.status_code == 404:

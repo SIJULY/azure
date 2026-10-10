@@ -13,7 +13,54 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
         mgr, acct = get_manager(account_id, db)
     except Exception as e:
         raise HTTPException(400, str(e))
-    result = {"account_id": account_id, "account_alias": acct.alias, "quota_tier": "", "vm_quotas": [], "error": ""}
+    
+    from datetime import datetime, timedelta
+    
+    upgrade_available = "不可用"
+    next_tier_date = "-"
+    upgrade_policy = "自动升级"
+    
+    try:
+        from .foundry import _cached_foundry_resources
+        resources = _cached_foundry_resources(account_id)
+        earliest_dt = None
+        for r in resources:
+            cat = r.get("created_at")
+            if cat:
+                # "2024-05-01T10:00:00+00:00" etc, parse up to 19 chars
+                try:
+                    dt = datetime.fromisoformat(cat.split(".")[0][:19])
+                    if earliest_dt is None or dt < earliest_dt:
+                        earliest_dt = dt
+                except Exception:
+                    pass
+        
+        if earliest_dt:
+            # You can change the threshold here, e.g. 30 days
+            N_DAYS = 30
+            days_passed = (datetime.now() - earliest_dt).days
+            if days_passed >= N_DAYS:
+                upgrade_available = "可升级"
+                next_tier_date = "-"
+            else:
+                upgrade_available = "不可用"
+                next_tier_date = (earliest_dt + timedelta(days=N_DAYS)).strftime("%Y-%m-%d")
+        else:
+            upgrade_available = "未开启 Foundry"
+            next_tier_date = "-"
+    except Exception:
+        pass
+
+    result = {
+        "account_id": account_id,
+        "account_alias": acct.alias,
+        "quota_tier": "",
+        "vm_quotas": [],
+        "error": "",
+        "upgrade_available": upgrade_available,
+        "next_tier_available_at": next_tier_date,
+        "upgrade_policy": upgrade_policy
+    }
     try:
         with proxy_env(acct):
             try:
@@ -24,6 +71,27 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
                 if ok and tier_data:
                     result["quota_tier"] = tier_data.get("quota_tier", "")
                     result["cognitiveservices"] = tier_data
+                    
+                    # Override calculated upgrade status with API truth if available
+                    if tier_data.get("upgrade_available"):
+                        status = tier_data.get("upgrade_available")
+                        if status == "Eligible":
+                            result["upgrade_available"] = "可升级"
+                            result["next_tier_available_at"] = "-"
+                        elif status == "Ineligible":
+                            result["upgrade_available"] = "不可用"
+                            app_date = tier_data.get("upgrade_applicable_date")
+                            if app_date:
+                                try:
+                                    dt = datetime.fromisoformat(app_date.replace("Z", "+00:00").split(".")[0][:19])
+                                    result["next_tier_available_at"] = dt.strftime("%Y-%m-%d")
+                                except Exception:
+                                    pass
+                            reason = tier_data.get("upgrade_unavailability_reason")
+                            if reason:
+                                result["upgrade_policy"] = str(reason)
+                        else:
+                            result["upgrade_available"] = str(status)
             except Exception:
                 pass
             # 各区域计算配额（只查 4 个常用区域，避免触发限流）
