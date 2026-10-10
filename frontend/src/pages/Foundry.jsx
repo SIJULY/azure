@@ -49,7 +49,7 @@ function EnsureModal({ accounts, tiers, onClose, onSaved }) {
         region: f.region,
       });
       toast("开启任务已提交，去任务中心查看", { action: "/jobs", actionLabel: "去查看" });
-      onSaved();
+      onSaved(Number(f.account_id));
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
@@ -348,27 +348,35 @@ export default function Foundry() {
     if (!accounts.length) return;
     setTiersLoading(true);
     const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
-    const out = {};
     await Promise.all(ids.map(async (id) => {
       const d = await fetchTier(id, force);
-      if (d) out[id] = d;  // 失败的不放入，保持"检测中"状态可重试
+      if (d) {
+        setTiers((prev) => ({ ...prev, [id]: d }));
+      }
     }));
-    setTiers((prev) => ({ ...prev, ...out }));
     setTiersLoading(false);
   };
 
   const loadResources = async (force = false) => {
     if (!accounts.length) return;
     const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
-    const rs = [];
     let okCount = 0;
-    for (const id of ids) {
+    
+    const results = await Promise.all(ids.map(async (id) => {
       try {
         const r = await api.get(`/foundry/resources?account_id=${id}${force ? "&refresh=true" : ""}`, { timeout: 45000 });
-        okCount += 1;
-        (r || []).forEach((x) => rs.push({ ...x, _aid: id }));
-      } catch { /* skip */ }
+        return { id, success: true, data: r || [] };
+      } catch {
+        return { id, success: false, data: [] };
+      }
+    }));
+
+    const rs = [];
+    for (const res of results) {
+      if (res.success) okCount += 1;
+      res.data.forEach((x) => rs.push({ ...x, _aid: res.id }));
     }
+
     setResources((prev) => (rs.length === 0 && prev.length > 0 ? prev : rs));
     if (okCount > 0 && rs.length > 0) publishFoundryOverview(rs);
   };
@@ -386,11 +394,11 @@ export default function Foundry() {
     setRefreshing(false);
   };
 
-  const refreshRow = async (id) => {
-    if (rowRefreshing) return;
+  const refreshRow = async (id, force = true) => {
+    if (rowRefreshing === id) return;
     setRowRefreshing(id);
-    const d = await fetchTier(id);
-    setTiers((p) => ({ ...p, [id]: d }));
+    const d = await fetchTier(id, force);
+    if (d) setTiers((p) => ({ ...p, [id]: d }));
     setRowRefreshing(null);
   };
 
@@ -503,7 +511,11 @@ export default function Foundry() {
         <EnsureModal
           accounts={accounts} tiers={tiers}
           onClose={() => setEnsureOpen(false)}
-          onSaved={() => { setEnsureOpen(false); loadResources(); loadTiers(); }}
+          onSaved={(aid) => {
+            setEnsureOpen(false);
+            loadResources(true);
+            if (aid) refreshRow(aid, true);
+          }}
         />
       )}
       {batchOpen && (
