@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 import { publishVmOverview } from "../overviewSync.js";
@@ -254,10 +254,15 @@ export default function VMs() {
   const [accountId, setAccountId] = useState("all");
   const [region, setRegion] = useState("all");
   const [vms, setVms] = useState([]);
+  const vmsRef = useRef([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
+
+  useEffect(() => {
+    vmsRef.current = vms;
+  }, [vms]);
 
   useEffect(() => {
     api.get("/accounts").then((d) => setAccounts(d.items || [])).catch(() => {});
@@ -268,42 +273,53 @@ export default function VMs() {
     const scopeKey = ids.join(",");
     const cached = !force && !manual ? readVmCache(scopeKey) : null;
     if (cached) {
+      vmsRef.current = cached;
       setVms(cached);
       publishVmOverview(cached);
     }
 
     if (manual) setRefreshing(true);
     else if (!force && !cached) setLoading(true);
-    let failedCount = 0;
     try {
-      const all = [];
-      let okCount = 0;
-      for (const id of ids) {
-        try {
-          const suffix = force ? "&refresh=true" : "";
-          const d = await api.get(`/vms?account_id=${id}${suffix}`);
-          okCount += 1;
-          const a = accounts.find((x) => x.id === id);
-          (d.vms || []).forEach((v) => all.push({ ...v, _aid: id, _alias: a?.alias || "" }));
-        } catch { failedCount += 1; }
+      const suffix = force ? "&refresh=true" : "";
+      const results = await Promise.allSettled(ids.map(async (id) => {
+        const d = await api.get(`/vms?account_id=${id}${suffix}`);
+        const a = accounts.find((x) => x.id === id);
+        return {
+          id,
+          items: (d.vms || []).map((v) => ({ ...v, _aid: id, _alias: a?.alias || "" })),
+        };
+      }));
+      const succeeded = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+      const failedIds = results
+        .map((r, i) => (r.status === "rejected" ? ids[i] : null))
+        .filter(Boolean);
+      if (succeeded.length === 0 && failedIds.length > 0) {
+        throw new Error("所有账号的虚拟机刷新都失败了，请检查账号权限、代理或后端日志");
       }
-      if (okCount === 0 && failedCount > 0) throw new Error("所有账号的虚拟机刷新都失败了，请检查账号权限、代理或后端日志");
-      const keepPrevious = !manual && all.length === 0 && vms.length > 0;
+
+      const oldItems = vmsRef.current;
+      const merged = [];
+      for (const id of ids) {
+        const fresh = succeeded.find((r) => r.id === id);
+        if (fresh) merged.push(...fresh.items);
+        else merged.push(...oldItems.filter((v) => v._aid === id));
+      }
+      const keepPrevious = !manual && merged.length === 0 && oldItems.length > 0;
+      const nextItems = keepPrevious ? oldItems : merged;
+
       setVms((prev) => {
-        // 静默更新：空数据不覆盖已有数据（防 Azure 瞬时失败）
-        if (keepPrevious) return prev;
         try {
-          if (JSON.stringify(prev) !== JSON.stringify(all)) return all;
+          if (JSON.stringify(prev) !== JSON.stringify(nextItems)) return nextItems;
         } catch {
-          return all;
+          return nextItems;
         }
         return prev;
       });
-      if (okCount > 0) {
-        if (!keepPrevious) writeVmCache(scopeKey, all);
-        publishVmOverview(all);
-      }
-      if (manual) toast(`刷新完成：${all.length} 台虚拟机${failedCount ? `，${failedCount} 个账号失败` : ""}`);
+      vmsRef.current = nextItems;
+      if (!keepPrevious) writeVmCache(scopeKey, nextItems);
+      publishVmOverview(nextItems);
+      if (manual) toast(`刷新完成：${nextItems.length} 台虚拟机${failedIds.length ? `，${failedIds.length} 个账号失败，已保留旧数据` : ""}`);
     } catch (e) {
       if (manual || (!force && !cached)) toast("刷新失败：" + e.message);
     } finally {
