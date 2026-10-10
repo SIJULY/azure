@@ -370,12 +370,12 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                 <table className="w-full table-fixed text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
-                      <th className="w-[33%] px-3 h-10 font-medium text-xs align-middle text-center">名称</th>
-                      <th className="w-[18%] px-3 h-10 font-medium text-xs align-middle text-center">账户类型</th>
-                      <th className="w-[22%] px-3 h-10 font-medium text-xs align-middle pl-8 text-center">代理</th>
+                      <th className="w-[28%] px-3 h-10 font-medium text-xs align-middle text-left pl-[72px]">名称</th>
+                      <th className="w-[16%] px-3 h-10 font-medium text-xs align-middle text-left">账户类型</th>
+                      <th className="w-[16%] px-3 h-10 font-medium text-xs align-middle text-center">代理</th>
                       <th className="w-[12%] px-3 h-10 font-medium text-xs align-middle text-center">订阅状态</th>
-                      <th className="w-[10%] px-3 h-10 font-medium text-xs align-middle text-center">最后检测</th>
-                      <th className="w-[5%] px-3 h-10 font-medium text-xs align-middle text-center">操作</th>
+                      <th className="w-[18%] px-3 h-10 font-medium text-xs align-middle text-center">最后检测</th>
+                      <th className="w-[10%] px-3 h-10 font-medium text-xs align-middle text-center">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -392,17 +392,16 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                                   <span className="truncate" title={a.alias}>{a.alias}</span>
                                   {flag && <span className="shrink-0" title={a.country_code}>{flag}</span>}
                                 </div>
-                                <div className="mt-1 truncate font-mono text-[12px] text-slate-500" title={`ID: ${a.id}`}>ID: {a.id}</div>
                               </div>
                             </div>
                           </td>
-                          <td className="p-3 align-middle">
+                          <td className="p-3 align-middle text-left">
                             <Badge color="blue" className="max-w-full rounded-full px-3 py-1 text-[13px]">
                               <span className="mr-1 shrink-0">◇</span>
                               <span className="min-w-0 truncate" title={a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}</span>
                             </Badge>
                           </td>
-                          <td className="p-3 align-middle pl-8 text-center">
+                          <td className="p-3 align-middle text-center">
                             {a.proxy_url || a.proxy_name ? <div className="truncate text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
                           </td>
                           <td className="p-3 align-middle text-center"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
