@@ -28,7 +28,7 @@ const formatDateTime = (value) => {
 
 function AccountIcon() {
   return (
-    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-100">
       <Svg d="M3.5 19.5h17M7 16.5V9l5-3 5 3v7.5M9.5 16.5v-4h5v4" />
     </span>
   );
@@ -40,7 +40,7 @@ function ActionButton({ title, onClick, disabled, danger, children }) {
       title={title}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-40 ${danger ? "text-red-500 hover:bg-red-50 hover:text-red-600" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-40 ${danger ? "text-red-500 hover:bg-red-50 hover:text-red-600" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}
     >
       {children}
     </button>
@@ -332,26 +332,26 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="flex flex-col gap-4 border-b border-slate-100 px-7 py-6 xl:flex-row xl:items-center xl:justify-between">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex flex-col gap-4 border-b border-slate-100 p-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="text-[18px] font-semibold tracking-tight text-slate-950">账号列表</h2>
-            <p className="mt-1 text-[13px] text-slate-500">管理已接入的 Azure 账号、订阅状态和请求代理。</p>
+            <h2 className="text-[14px] font-semibold text-slate-950">账号列表</h2>
+            <p className="mt-1 text-sm text-slate-500">管理已接入的 Azure 账号、订阅状态和请求代理。</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-[360px]">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                 <Svg d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
               </span>
-              <Input placeholder="搜索账户名称或订阅 ID" className="h-11 rounded-xl pl-10" value={query} readOnly />
+              <Input placeholder="搜索账户名称或订阅 ID" className="h-9 rounded-md pl-10 text-sm" value={query} readOnly />
             </div>
-            <Select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="h-11 w-full rounded-xl sm:w-40">
+            <Select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="h-9 w-full rounded-md sm:w-36 text-sm">
               {STATUS_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
             </Select>
           </div>
         </div>
 
-        <div className="px-6 py-4">
+        <div className="p-4">
           <div className="mb-5 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <Check label="全选当前列表" checked={sel.length === filtered.length && filtered.length > 0} onChange={toggleAll} />
             <Btn variant="danger" className="rounded-xl bg-red-500 px-4 hover:bg-red-600" disabled={sel.length === 0}
@@ -367,16 +367,16 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-[13px]">
+                <table className="min-w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
-                      <th className="w-[32%] px-4 py-4 font-medium">名称</th>
-                      <th className="px-4 py-4 font-medium">账户类型</th>
-                      <th className="px-4 py-4 font-medium">订阅</th>
-                      <th className="px-4 py-4 font-medium">代理</th>
-                      <th className="px-4 py-4 font-medium">订阅状态</th>
-                      <th className="px-4 py-4 font-medium">最后检测</th>
-                      <th className="px-4 py-4 font-medium">操作</th>
+                      <th className="w-[32%] px-3 h-10 font-medium text-xs align-middle">名称</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle">账户类型</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle">订阅</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle">代理</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle">订阅状态</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle">最后检测</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -384,12 +384,12 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                       const flag = toFlagEmoji(a.country_code);
                       return (
                         <tr key={a.id} className="border-b border-slate-100 transition hover:bg-slate-50/70">
-                          <td className="px-4 py-3 align-middle">
-                            <div className="flex items-center gap-4">
+                          <td className="p-3 align-middle">
+                            <div className="flex items-center gap-3">
                               <input type="checkbox" className="h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600" checked={sel.includes(a.id)} onChange={() => toggle(a.id)} />
                               <AccountIcon />
                               <div className="min-w-0">
-                                <div className="flex items-center gap-2 text-[15px] font-semibold text-slate-950">
+                                <div className="flex items-center gap-2 text-sm font-medium text-slate-950">
                                   <span className="truncate">{a.alias}</span>
                                   {flag && <span title={a.country_code}>{flag}</span>}
                                 </div>
@@ -397,18 +397,18 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 align-middle">
+                          <td className="p-3 align-middle">
                             <Badge color="blue" className="rounded-full px-3 py-1 text-[13px]">
                               <span className="mr-1">◇</span>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}
                             </Badge>
                           </td>
-                          <td className="px-4 py-3 align-middle"><div className="max-w-[260px] break-all font-mono text-[13px] text-slate-600">{a.subscription_id || "—"}</div></td>
-                          <td className="px-4 py-3 align-middle">
+                          <td className="p-3 align-middle"><div className="max-w-[260px] break-all font-mono text-[13px] text-slate-600">{a.subscription_id || "—"}</div></td>
+                          <td className="p-3 align-middle">
                             {a.proxy_url || a.proxy_name ? <div className="max-w-[260px] truncate text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
                           </td>
-                          <td className="px-4 py-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 max-w-[220px] truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
-                          <td className="px-4 py-3 align-middle text-slate-500 whitespace-nowrap">{formatDateTime(a.last_checked)}</td>
-                          <td className="px-4 py-3 align-middle">
+                          <td className="p-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 max-w-[220px] truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
+                          <td className="p-3 align-middle text-slate-500 whitespace-nowrap">{formatDateTime(a.last_checked)}</td>
+                          <td className="p-3 align-middle">
                             <div className="flex items-center gap-1 whitespace-nowrap">
                               <ActionButton title="重新检测账户状态" onClick={() => testOne(a)} disabled={testing === a.id}><Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" /></ActionButton>
                               <ActionButton title="编辑" onClick={() => setEditInit(a)}><Svg d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></ActionButton>
