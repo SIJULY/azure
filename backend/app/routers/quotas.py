@@ -8,6 +8,40 @@ from ..azure_svc import get_manager, proxy_env, call_with_timeout, cached, cache
 router = APIRouter(prefix="/quotas", tags=["资源配额"])
 
 
+def _fmt_ymd(iso: str) -> str:
+    """把 ISO 时间转成 YYYY-MM-DD，失败返回 '-'。"""
+    from datetime import datetime
+    iso = (iso or "").strip()
+    if not iso:
+        return "-"
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00").split(".")[0][:19])
+        return dt.strftime("%Y-%m-%d")
+    except Exception:
+        return "-"
+
+
+def _cn_upgrade_status(status: str, reason: str = "") -> str:
+    """升级可用状态中文化。status: Eligible / Ineligible。"""
+    s = (status or "").strip().lower()
+    reason = (reason or "").strip()
+    if s == "eligible":
+        return "可升级"
+    if s == "ineligible":
+        return f"不可用（{reason}）" if reason else "不可用"
+    return status or "未知"
+
+
+def _cn_upgrade_policy(policy: str) -> str:
+    """升级策略中文化。"""
+    p = (policy or "").strip().lower()
+    if "noautoupgrade" in p:
+        return "不自动升级"
+    if "onceupgradeisavailable" in p:
+        return "自动升级"
+    return policy or "自动升级"
+
+
 def _do_fetch_quotas(account_id: int, db: Session) -> dict:
     try:
         mgr, acct = get_manager(account_id, db)
@@ -71,27 +105,23 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
                 if ok and tier_data:
                     result["quota_tier"] = tier_data.get("quota_tier", "")
                     result["cognitiveservices"] = tier_data
-                    
-                    # Override calculated upgrade status with API truth if available
-                    if tier_data.get("upgrade_available"):
-                        status = tier_data.get("upgrade_available")
-                        if status == "Eligible":
-                            result["upgrade_available"] = "可升级"
-                            result["next_tier_available_at"] = "-"
-                        elif status == "Ineligible":
-                            result["upgrade_available"] = "不可用"
-                            app_date = tier_data.get("upgrade_applicable_date")
-                            if app_date:
-                                try:
-                                    dt = datetime.fromisoformat(app_date.replace("Z", "+00:00").split(".")[0][:19])
-                                    result["next_tier_available_at"] = dt.strftime("%Y-%m-%d")
-                                except Exception:
-                                    pass
-                            reason = tier_data.get("upgrade_unavailability_reason")
-                            if reason:
-                                result["upgrade_policy"] = str(reason)
-                        else:
-                            result["upgrade_available"] = str(status)
+
+                    # 用 Quota Tiers API 的真实升级资格覆盖启发式估算；
+                    # API 无数据时保留上面的启发式结果
+                    api_status = (tier_data.get("upgrade_available") or "").strip()
+                    if api_status:
+                        result["upgrade_available"] = _cn_upgrade_status(
+                            api_status, tier_data.get("upgrade_unavailability_reason", "")
+                        )
+                        result["next_tier_available_at"] = _fmt_ymd(
+                            tier_data.get("upgrade_applicable_date", "")
+                        )
+                        policy = (tier_data.get("tier_upgrade_policy") or "").strip()
+                        if policy:
+                            result["upgrade_policy"] = _cn_upgrade_policy(policy)
+                    nxt = (tier_data.get("next_tier_name") or "").strip()
+                    if nxt:
+                        result["next_tier_name"] = nxt
             except Exception:
                 pass
             # 各区域计算配额（只查 4 个常用区域，避免触发限流）

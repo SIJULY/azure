@@ -247,12 +247,31 @@ class AzureManager:
             return False, None, f"连接失败: {str(e)}"
 
     def get_quota_tier(self, credential=None, subscription_id=None, log_callback=None) -> tuple:
-        """查询订阅的 Cognitive Services 付费层级 (Tier 0 / Tier 1)"""
+        """查询订阅的 Foundry 模型配额层级 (Free Tier / Tier 1~6) 及升级资格。
+
+        调用的 Quota Tiers API (2025-10-01-preview) 返回结构：
+          properties.currentTierName            当前层级
+          properties.tierUpgradePolicy          升级策略 (OnceUpgradeIsAvailable / NoAutoUpgrade)
+          properties.assignmentDate             当前层级分配日期
+          properties.tierUpgradeEligibilityInfo.nextTierName
+          properties.tierUpgradeEligibilityInfo.upgradeAvailabilityStatus  (Eligible / Ineligible)
+          properties.tierUpgradeEligibilityInfo.upgradeApplicableDate      下一层级可用时间
+          properties.tierUpgradeEligibilityInfo.upgradeUnavailabilityReason 不符合升级的原因
+        """
         import re
 
         def _log(msg, level="INFO"):
             if log_callback:
                 log_callback(msg, level)
+
+        def _normalize_tier_name(name):
+            name = (name or "").strip()
+            m = re.fullmatch(r"(?i)tier\s*(\d+)", name)
+            if m:
+                return f"Tier {m.group(1)}"
+            if re.fullmatch(r"(?i)free(\s*tier)?", name):
+                return "Free Tier"
+            return name
 
         if credential is None:
             credential = self.credential
@@ -279,17 +298,23 @@ class AzureManager:
                 tier_name = props.get("currentTierName")
                 if tier_name is None:
                     for v in props.values():
-                        if v and re.fullmatch(r"(?i)tier\s*[01]", str(v)):
+                        if v and re.fullmatch(r"(?i)(free(\s*tier)?|tier\s*\d+)", str(v).strip()):
                             tier_name = v
                             break
+                # 升级资格信息嵌套在 tierUpgradeEligibilityInfo 对象里，不是 properties 顶层
+                elig = props.get("tierUpgradeEligibilityInfo") or {}
+                if not isinstance(elig, dict):
+                    elig = {}
                 if tier_name:
                     _log(f"付费层级查询完成: {tier_name}")
                     result_data = {
-                        "quota_tier": str(tier_name),
-                        "upgrade_available": props.get("upgradeAvailabilityStatus"),
-                        "upgrade_applicable_date": props.get("upgradeApplicableDate"),
-                        "upgrade_unavailability_reason": props.get("upgradeUnavailabilityReason"),
-                        "assignment_date": props.get("assignmentDate"),
+                        "quota_tier": _normalize_tier_name(str(tier_name)),
+                        "next_tier_name": _normalize_tier_name(str(elig.get("nextTierName") or "")),
+                        "upgrade_available": elig.get("upgradeAvailabilityStatus") or props.get("upgradeAvailabilityStatus") or "",
+                        "upgrade_applicable_date": elig.get("upgradeApplicableDate") or "",
+                        "upgrade_unavailability_reason": elig.get("upgradeUnavailabilityReason") or "",
+                        "tier_upgrade_policy": props.get("tierUpgradePolicy") or "",
+                        "assignment_date": props.get("assignmentDate") or "",
                     }
                     return True, result_data, ""
                 _log("付费层级查询完成: 未识别到层级信息", "WARN")
