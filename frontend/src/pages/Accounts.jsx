@@ -440,7 +440,7 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
 }
 
 export default function Accounts() {
-  const [query] = useSearch();
+  const [query, setQuery] = useSearch();
   const toast = useToast();
   const [items, setItems] = useState([]);
   const [proxies, setProxies] = useState([]);
