@@ -303,11 +303,37 @@ def get_manager(account_id: int, db: Session | None = None, full: bool = False) 
         if not acct:
             raise ValueError("账号不存在")
         mgr = AzureManager()
-        with proxy_env(acct):
-            if full:
-                mgr.connect(_profile_of(acct), alias=acct.alias or f"account-{acct.id}")
-            else:
-                _connect_fast(mgr, _profile_of(acct), alias=acct.alias or f"account-{acct.id}")
+        try:
+            with proxy_env(acct):
+                if full:
+                    mgr.connect(_profile_of(acct), alias=acct.alias or f"account-{acct.id}")
+                else:
+                    _connect_fast(mgr, _profile_of(acct), alias=acct.alias or f"account-{acct.id}")
+        except Exception as conn_e:
+            from datetime import datetime
+            acct.last_checked = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            acct.status = "error"
+            acct.status_msg = str(conn_e)[:500]
+            db.commit()
+            raise conn_e
+        
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        should_update = True
+        if acct.last_checked and acct.status == "healthy":
+            try:
+                last_time = datetime.strptime(acct.last_checked, "%Y-%m-%d %H:%M:%S")
+                if now - last_time < timedelta(minutes=1):
+                    should_update = False
+            except ValueError:
+                pass
+        
+        if should_update:
+            acct.last_checked = now.strftime("%Y-%m-%d %H:%M:%S")
+            acct.status = "healthy"
+            acct.status_msg = ""
+            db.commit()
+
         return mgr, acct
     except Exception as e:
         msg = str(e)
