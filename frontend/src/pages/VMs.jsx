@@ -217,6 +217,34 @@ const ACTS = [
   { k: "delete", t: "删除", danger: true },
 ];
 
+const VM_CACHE_KEY = "azure_panel_vm_list_cache_v1";
+const VM_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+
+function readVmCache(scopeKey) {
+  try {
+    const raw = localStorage.getItem(VM_CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw);
+    const entry = cache?.[scopeKey];
+    if (!entry || !Array.isArray(entry.items)) return null;
+    if (Date.now() - Number(entry.savedAt || 0) > VM_CACHE_MAX_AGE) return null;
+    return entry.items;
+  } catch {
+    return null;
+  }
+}
+
+function writeVmCache(scopeKey, items) {
+  try {
+    const raw = localStorage.getItem(VM_CACHE_KEY);
+    const cache = raw ? JSON.parse(raw) : {};
+    cache[scopeKey] = { items, savedAt: Date.now() };
+    localStorage.setItem(VM_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // localStorage 可能被禁用或空间已满，忽略缓存失败即可。
+  }
+}
+
 export default function VMs() {
   const toast = useToast();
   const [q] = useSearch();
@@ -236,11 +264,18 @@ export default function VMs() {
   }, []);
 
   const load = async (force = false, manual = false) => {
+    const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
+    const scopeKey = ids.join(",");
+    const cached = !force && !manual ? readVmCache(scopeKey) : null;
+    if (cached) {
+      setVms(cached);
+      publishVmOverview(cached);
+    }
+
     if (manual) setRefreshing(true);
-    else if (!force) setLoading(true);
+    else if (!force && !cached) setLoading(true);
     let failedCount = 0;
     try {
-      const ids = accountId === "all" ? accounts.map((a) => a.id) : [Number(accountId)];
       const all = [];
       let okCount = 0;
       for (const id of ids) {
@@ -253,27 +288,33 @@ export default function VMs() {
         } catch { failedCount += 1; }
       }
       if (okCount === 0 && failedCount > 0) throw new Error("所有账号的虚拟机刷新都失败了，请检查账号权限、代理或后端日志");
+      const keepPrevious = !manual && all.length === 0 && vms.length > 0;
       setVms((prev) => {
         // 静默更新：空数据不覆盖已有数据（防 Azure 瞬时失败）
-        if (!manual && all.length === 0 && prev.length > 0) return prev;
+        if (keepPrevious) return prev;
         try {
           if (JSON.stringify(prev) !== JSON.stringify(all)) return all;
-        } catch { /* ignore */ }
+        } catch {
+          return all;
+        }
         return prev;
       });
-      if (okCount > 0) publishVmOverview(all);
+      if (okCount > 0) {
+        if (!keepPrevious) writeVmCache(scopeKey, all);
+        publishVmOverview(all);
+      }
       if (manual) toast(`刷新完成：${all.length} 台虚拟机${failedCount ? `，${failedCount} 个账号失败` : ""}`);
     } catch (e) {
-      if (manual || !force) toast("刷新失败：" + e.message);
+      if (manual || (!force && !cached)) toast("刷新失败：" + e.message);
     } finally {
       if (manual) setRefreshing(false);
-      else if (!force) setLoading(false);
+      else if (!force && !cached) setLoading(false);
     }
   };
   useEffect(() => {
     if (accounts.length) {
-      load(false);  // 立即显示缓存
-      // 后台静默拉取最新
+      load(false);  // 先显示浏览器缓存/后端缓存
+      // 后台静默拉取 Azure 最新数据，成功后更新浏览器缓存
       const t = setTimeout(() => load(true), 1000);
       return () => clearTimeout(t);
     }
