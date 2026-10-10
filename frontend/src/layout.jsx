@@ -30,28 +30,28 @@ const GROUPS = [
   {
     label: "平台",
     items: [
-      { to: "/overview", label: "总览", icon: "overview" },
-      { to: "/accounts", label: "Azure 账号", icon: "accounts" },
-      { to: "/proxies", label: "代理", icon: "proxies" },
-      { to: "/billing", label: "账单费用", icon: "billing" },
-      { to: "/quotas", label: "资源配额", icon: "quotas" },
+      { to: "/overview", label: "总览", icon: "overview", description: "查看平台运行概况、资源状态与关键指标" },
+      { to: "/accounts", label: "Azure 账号", icon: "accounts", description: "管理 Azure 订阅账号、凭据与可用状态" },
+      { to: "/proxies", label: "代理", icon: "proxies", description: "配置代理节点并检测网络连通性" },
+      { to: "/billing", label: "账单费用", icon: "billing", description: "汇总订阅消费、余额与费用趋势" },
+      { to: "/quotas", label: "资源配额", icon: "quotas", description: "查看各区域资源限制与剩余配额" },
     ],
   },
   {
     label: "资源管理",
     items: [
-      { to: "/resource-groups", label: "资源组", icon: "rgs" },
-      { to: "/virtual-machines", label: "虚拟机", icon: "vms" },
-      { to: "/foundry", label: "Foundry", icon: "foundry" },
-      { to: "/scripts", label: "初始化脚本", icon: "scripts" },
+      { to: "/resource-groups", label: "资源组", icon: "rgs", description: "组织资源组、区域与关联资源" },
+      { to: "/virtual-machines", label: "虚拟机", icon: "vms", description: "创建、查看并维护虚拟机实例" },
+      { to: "/foundry", label: "Foundry", icon: "foundry", description: "管理 Azure AI Foundry 资源与服务" },
+      { to: "/scripts", label: "初始化脚本", icon: "scripts", description: "维护自动化初始化脚本与执行模板" },
     ],
   },
   {
     label: "运维中心",
     items: [
-      { to: "/jobs", label: "任务中心", icon: "jobs" },
-      { to: "/api-access", label: "API 访问", icon: "tokens" },
-      { to: "/api-docs", label: "API 文档", icon: "docs" },
+      { to: "/jobs", label: "任务中心", icon: "jobs", description: "跟踪后台任务、执行进度与运行结果" },
+      { to: "/api-access", label: "API 访问", icon: "tokens", description: "管理访问令牌、权限与接口调用凭据" },
+      { to: "/api-docs", label: "API 文档", icon: "docs", description: "查看接口说明、请求示例与调试信息" },
     ],
   },
 ];
@@ -144,21 +144,7 @@ function TopBar({ onSearch }) {
   const current = allItems.find((it) => location.pathname.startsWith(it.to));
   const currentLabel = current?.label || "总览";
 
-  const [accountInfo, setAccountInfo] = useState("Azure for Students · West US 2");
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("azure_accounts");
-      if (raw) {
-        const accs = JSON.parse(raw);
-        if (accs.length > 0) {
-          const acc = accs[0];
-          const name = acc.alias || acc.name || acc.display_name || "Azure for Students";
-          const region = acc.region || acc.location || "West US 2";
-          setAccountInfo(`${name} · ${region}`);
-        }
-      }
-    } catch {}
-  }, []);
+  const pageDescription = current?.description || "管理 Azure 资源、任务与平台配置";
 
   useEffect(() => {
     const h = (e) => {
@@ -180,7 +166,7 @@ function TopBar({ onSearch }) {
           </button>
         </div>
         <button className="mt-3 inline-flex items-center gap-1.5 text-[13px] leading-none text-slate-500 hover:text-slate-700 w-fit">
-          <span className="truncate max-w-[340px]">{accountInfo}</span>
+          <span className="truncate max-w-[340px]">{pageDescription}</span>
           <ChevronSort className="w-3 h-3 text-slate-400" />
         </button>
       </div>
