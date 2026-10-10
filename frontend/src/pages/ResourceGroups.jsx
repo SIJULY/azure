@@ -181,7 +181,7 @@ export default function ResourceGroups() {
         {loading ? <Loading /> : filtered.length === 0 ? (
           <EmptyState icon="📁" text="此订阅暂无资源组" />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-3">
             {filtered.map((r, i) => {
               const tagN = Object.keys(r.tags || {}).length;
               return (

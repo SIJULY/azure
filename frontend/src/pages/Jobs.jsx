@@ -59,7 +59,7 @@ export default function Jobs() {
       <Card title="任务" sub="页面每 5 秒刷新，可在此跟踪 Azure 操作进度和处理结果。"
         extra={<>
           <button onClick={() => setOnlyPending((v) => !v)}
-            className="inline-flex items-center gap-2 text-[13px] text-slate-600 hover:text-slate-800">
+            className="inline-flex items-center gap-2 text-xs text-slate-600 hover:text-slate-800">
             <span className={`relative inline-flex w-9 h-5 rounded-full transition ${onlyPending ? "bg-blue-600" : "bg-slate-300"}`}>
               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${onlyPending ? "left-[18px]" : "left-0.5"}`} />
             </span>
