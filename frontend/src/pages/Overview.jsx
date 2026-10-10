@@ -48,11 +48,11 @@ function Icon({ d, className = "w-5 h-5" }) {
   );
 }
 
-function Dot({ c }) {
-  return <span className={`inline-block h-2.5 w-2.5 rounded-full ${DOT[c] || DOT.gray}`} />;
+function Dot({ c, small }) {
+  return <span className={`inline-block rounded-full ${small ? "h-1.5 w-1.5" : "h-2.5 w-2.5"} ${DOT[c] || DOT.gray}`} />;
 }
 
-function IconTile({ color = "blue", icon, large = false }) {
+function IconTile({ color = "blue", icon, large = false, small = false, medium = false }) {
   const colors = {
     blue: "bg-blue-50 text-blue-600 ring-blue-100",
     cyan: "bg-cyan-50 text-cyan-600 ring-cyan-100",
@@ -63,8 +63,8 @@ function IconTile({ color = "blue", icon, large = false }) {
     slate: "bg-slate-50 text-slate-500 ring-slate-100",
   };
   return (
-    <span className={`${large ? "h-12 w-12 rounded-2xl" : "h-10 w-10 rounded-xl"} inline-flex shrink-0 items-center justify-center ring-1 ${colors[color] || colors.slate}`}>
-      <Icon d={ICONS[icon]} className={large ? "h-6 w-6" : "h-5 w-5"} />
+    <span className={`${medium ? "h-9 w-9 rounded-lg" : small ? "h-8 w-8 rounded-lg" : large ? "h-12 w-12 rounded-2xl" : "h-10 w-10 rounded-xl"} inline-flex shrink-0 items-center justify-center ring-1 ${colors[color] || colors.slate}`}>
+      <Icon d={ICONS[icon]} className={medium ? "h-[18px] w-[18px]" : small ? "h-4 w-4" : large ? "h-6 w-6" : "h-5 w-5"} />
     </span>
   );
 }
@@ -73,18 +73,18 @@ function Panel({ title, sub, icon, iconColor, extra, children, className = "", b
   return (
     <section className={`overflow-hidden rounded-2xl border border-slate-200 bg-white ${className}`}>
       {(title || extra) && (
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4">
-          <div className="flex items-center gap-3">
-            {icon && <IconTile icon={icon} color={iconColor} large />}
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            {icon && <IconTile icon={icon} color={iconColor} medium />}
             <div>
-              {title && <h2 className="text-[17px] font-semibold tracking-tight text-slate-950">{title}</h2>}
-              {sub && <p className="mt-0.5 text-[13px] text-slate-500">{sub}</p>}
+              {title && <h2 className="text-[14px] font-semibold tracking-tight text-slate-950">{title}</h2>}
+              {sub && <p className="mt-0.5 text-[12px] text-slate-500">{sub}</p>}
             </div>
           </div>
           {extra && <div className="shrink-0 pt-0.5">{extra}</div>}
         </div>
       )}
-      <div className={bodyClassName || "px-6 py-4"}>{children}</div>
+      <div className={bodyClassName || "px-4 py-3"}>{children}</div>
     </section>
   );
 }
@@ -93,17 +93,17 @@ function StatCard({ to, color, icon, title, value, rows }) {
   return (
     <Link
       to={to}
-      className="group block rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+      className="group block rounded-xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
     >
-      <div className="flex items-center gap-2.5">
-        <IconTile color={color} icon={icon} />
-        <div className="text-[15px] font-semibold text-slate-950">{title}</div>
+      <div className="flex items-center gap-2">
+        <IconTile color={color} icon={icon} small />
+        <div className="text-[14px] font-medium text-slate-950">{title}</div>
       </div>
-      <div className="mt-4 text-[30px] font-bold leading-none tracking-tight text-slate-950">{Number(value || 0).toLocaleString("en-US")}</div>
-      <div className="mt-4 space-y-2">
+      <div className="mt-2 text-[24px] font-semibold leading-none tracking-tight text-slate-950">{Number(value || 0).toLocaleString("en-US")}</div>
+      <div className="mt-3 space-y-1.5">
         {rows.map((r) => (
-          <div key={r.label} className="flex items-center justify-between gap-4 text-[13px] text-slate-500">
-            <span className="inline-flex items-center gap-2"><Dot c={r.color} />{r.label}</span>
+          <div key={r.label} className="flex items-center justify-between gap-4 text-[11px] text-slate-500">
+            <span className="inline-flex items-center gap-1.5"><Dot c={r.color} small />{r.label}</span>
             <span className="font-medium tabular-nums text-slate-600">{Number(r.value || 0).toLocaleString("en-US")}</span>
           </div>
         ))}
@@ -199,33 +199,33 @@ function RecentJobs({ jobs }) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-[14px]">
             <thead>
-              <tr className="border-b border-slate-100 text-[13px] text-slate-500">
-                <th className="px-5 py-2.5 font-medium">开始时间</th>
-                <th className="px-4 py-2.5 font-medium">操作</th>
-                <th className="px-4 py-2.5 font-medium">资源</th>
-                <th className="px-5 py-2.5 font-medium">状态</th>
+              <tr className="border-b border-slate-100 text-[12px] text-slate-500">
+                <th className="px-4 py-3 font-medium">开始时间</th>
+                <th className="px-4 py-3 font-medium">操作</th>
+                <th className="px-4 py-3 font-medium">资源</th>
+                <th className="px-4 py-3 font-medium">状态</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {jobs.slice(0, 6).map((j) => (
                 <tr key={j.id || `${j.type}-${j.created_at}`} className="hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-5 py-2.5 text-[13px] text-slate-500">{fmtTime(j.created_at)}</td>
-                  <td className="px-4 py-2.5">
+                  <td className="whitespace-nowrap px-4 py-3 text-[12px] text-slate-500">{fmtTime(j.created_at)}</td>
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-500 ring-1 ring-slate-100">
                         <Icon d={ICONS.activity} className="h-3 w-3" />
                       </span>
                       <div>
-                        <div className="text-[13px] font-medium text-slate-900">{j.title || j.type || "Azure 操作"}</div>
+                        <div className="text-[12px] font-medium text-slate-900">{j.title || j.type || "Azure 操作"}</div>
                         {j.status === "failed" && <div className="mt-0.5 text-[12px] text-red-600">任务执行失败，请检查代理、账户配置或服务状态后重试。</div>}
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-3">
                     <div className="font-mono text-[12px] font-medium text-slate-900">{jobResource(j)}</div>
                     <div className="mt-0.5 text-[12px] text-slate-500">{jobTypeName(j)}</div>
                   </td>
-                  <td className="px-5 py-2.5"><StatusBadge status={j.status} /></td>
+                  <td className="px-4 py-3"><StatusBadge status={j.status} /></td>
                 </tr>
               ))}
             </tbody>
@@ -249,15 +249,15 @@ function QuotaProgress({ q }) {
   const limit = Number(q.limit || 0);
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-4 text-[13px]">
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-4 text-[12px]">
         <span className="truncate font-medium text-slate-900">{quotaLabel(q.name)}</span>
         <span className="text-slate-500 tabular-nums">{pct}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-100">
         <div className={`h-1.5 rounded-full ${pct >= 80 ? "bg-amber-500" : "bg-blue-500"}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className="text-right text-[12px] text-slate-400 tabular-nums">{used.toLocaleString("en-US")} / {limit.toLocaleString("en-US")} Count</div>
+      <div className="text-right text-[10px] text-slate-400 tabular-nums">{used.toLocaleString("en-US")} / {limit.toLocaleString("en-US")} Count</div>
     </div>
   );
 }
@@ -358,11 +358,11 @@ function QuotaCard({ accounts }) {
 
 function NeedItem({ color, icon, title, desc, to }) {
   return (
-    <Link to={to} className="flex items-center gap-4 px-6 py-4 transition hover:bg-slate-50/70">
-      <IconTile color={color} icon={icon} large />
+    <Link to={to} className="flex items-center gap-3 px-3 py-2.5 transition hover:bg-slate-50/70 rounded-lg">
+      <IconTile color={color} icon={icon} small />
       <div className="min-w-0 flex-1">
-        <div className="text-[16px] font-semibold text-slate-950">{title}</div>
-        <div className="mt-0.5 text-[13px] text-slate-500">{desc}</div>
+        <div className="text-[14px] font-medium text-slate-900">{title}</div>
+        <div className="mt-0.5 text-[12px] text-slate-500">{desc}</div>
       </div>
       <ChevronR />
     </Link>
@@ -405,7 +405,7 @@ function NeedPanel({ data, jobs, syncError }) {
   ];
 
   return (
-    <Panel title="需要处理" icon="alert" iconColor="orange" bodyClassName="divide-y divide-slate-100 p-0">
+    <Panel title="需要处理" icon="alert" iconColor="orange" bodyClassName="space-y-1 p-2">
       {items.map((item) => <NeedItem key={item.title} {...item} />)}
     </Panel>
   );
@@ -477,7 +477,7 @@ export default function Overview() {
 
       <div className="mb-8">
         <h1 className="mb-5 text-[22px] font-semibold tracking-tight text-slate-950">资源概览</h1>
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-4 md:grid-cols-2">
           <StatCard
             to="/accounts"
             color="blue"
@@ -515,7 +515,7 @@ export default function Overview() {
 
       <div className="space-y-4">
         <RecentJobs jobs={jobs} />
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <QuotaCard accounts={accounts} />
           <NeedPanel data={data} jobs={jobs} syncError={failedJobs === 0 ? err : ""} />
         </div>
