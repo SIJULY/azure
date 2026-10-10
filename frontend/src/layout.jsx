@@ -122,10 +122,10 @@ function ChevronSort({ className = "w-4 h-4" }) {
 
 function TopBrandBar() {
   return (
-    <div className="h-[74px] bg-white border-b border-slate-200 px-4 py-3 shrink-0">
-      <div className="h-full w-full rounded-[24px] border border-slate-200 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.08)] flex items-center justify-center gap-3">
-        <AzureMark className="w-8 h-8" />
-        <span className="text-[18px] font-medium text-slate-600 tracking-tight">AzureIn</span>
+    <div className="h-[48px] bg-white border-b border-slate-200 px-3 py-2 shrink-0">
+      <div className="h-full w-full rounded-[18px] border border-slate-200 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.035),0_1px_2px_rgba(15,23,42,0.06)] flex items-center justify-center gap-2">
+        <AzureMark className="w-[22px] h-[22px]" />
+        <span className="text-[15px] font-medium text-slate-600 tracking-tight">AzureIn</span>
       </div>
     </div>
   );
@@ -169,45 +169,45 @@ function TopBar({ onSearch }) {
   }, []);
 
   return (
-    <header className="h-[128px] bg-white border-b border-slate-200 flex items-center gap-6 px-12 shrink-0 sticky top-0 z-40">
-      <div className="flex flex-col justify-center shrink-0 min-w-[360px]">
-        <div className="flex items-center gap-4 text-[18px] leading-none">
+    <header className="h-[84px] bg-white border-b border-slate-200 flex items-center gap-5 px-7 shrink-0 sticky top-0 z-40">
+      <div className="flex flex-col justify-center shrink-0 min-w-[310px]">
+        <div className="flex items-center gap-3 text-[16px] leading-none">
           <span className="text-slate-500 font-normal">AzureIn</span>
-          <span className="text-slate-500 text-[24px] font-light">/</span>
-          <button className="inline-flex items-center gap-2 text-slate-950 font-semibold hover:text-slate-700">
+          <span className="text-slate-500 text-[18px] font-light">/</span>
+          <button className="inline-flex items-center gap-1.5 text-slate-950 font-semibold hover:text-slate-700">
             {currentLabel}
-            <ChevronDown className="w-4 h-4 text-slate-950" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-950" />
           </button>
         </div>
-        <button className="mt-6 inline-flex items-center gap-3 text-[17px] leading-none text-slate-500 hover:text-slate-700 w-fit">
-          <span className="truncate max-w-[420px]">{accountInfo}</span>
-          <ChevronSort className="w-4 h-4 text-slate-400" />
+        <button className="mt-4 inline-flex items-center gap-2 text-[15px] leading-none text-slate-500 hover:text-slate-700 w-fit">
+          <span className="truncate max-w-[380px]">{accountInfo}</span>
+          <ChevronSort className="w-3.5 h-3.5 text-slate-400" />
         </button>
       </div>
       <div className="flex-1" />
-      <div className="relative w-[44vw] max-w-[760px] min-w-[360px]">
-        <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor">
+      <div className="relative w-[38vw] max-w-[520px] min-w-[320px]">
+        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.1} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
         <input
           placeholder="搜索资源、任务或页面..."
           onChange={(e) => onSearch(e.target.value)}
-          className="h-[58px] w-full rounded-[14px] border border-slate-200 bg-white pl-14 pr-16 text-[17px] font-semibold text-slate-700 placeholder:text-slate-400 shadow-[0_0_0_1px_rgba(15,23,42,0.03)] focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="h-[42px] w-full rounded-[12px] border border-slate-200 bg-white pl-11 pr-14 text-[15px] font-semibold text-slate-700 placeholder:text-slate-400 shadow-[0_0_0_1px_rgba(15,23,42,0.03)] focus:outline-none focus:ring-2 focus:ring-slate-200"
         />
-        <kbd className="absolute right-5 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-slate-500 font-sans">⌘K</kbd>
+        <kbd className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-slate-500 font-sans">⌘K</kbd>
       </div>
-      <div className="flex items-center gap-8 shrink-0">
-        <button className="flex items-center gap-3 text-[18px] font-semibold text-slate-950 hover:text-slate-700">
+      <div className="flex items-center gap-6 shrink-0">
+        <button className="flex items-center gap-2 text-[16px] font-semibold text-slate-950 hover:text-slate-700">
           中文
-          <ChevronSort className="w-4 h-4 text-slate-400" />
+          <ChevronSort className="w-3.5 h-3.5 text-slate-400" />
         </button>
-        <button title="深色模式" className="w-11 h-11 rounded-full hover:bg-slate-100 text-slate-950 flex items-center justify-center">
-          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor">
+        <button title="深色模式" className="w-9 h-9 rounded-full hover:bg-slate-100 text-slate-950 flex items-center justify-center">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2.1} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0012 21.75a8.25 8.25 0 009.752-6.748z" />
           </svg>
         </button>
         <div className="relative" ref={menuRef}>
-          <button onClick={() => setMenu((v) => !v)} className="w-[58px] h-[58px] rounded-full bg-black text-white text-[22px] font-semibold flex items-center justify-center">
+          <button onClick={() => setMenu((v) => !v)} className="w-9 h-9 rounded-full bg-black text-white text-[14px] font-semibold flex items-center justify-center">
             {initial}
           </button>
           {menu && (
@@ -225,25 +225,25 @@ function TopBar({ onSearch }) {
 
 function Sidebar() {
   return (
-    <aside className="w-[478px] shrink-0 bg-white border-r border-slate-200 flex flex-col">
-      <div className="h-[128px] border-b border-slate-200 flex items-center px-10 gap-6 shrink-0">
-        <AzureMark className="w-[56px] h-[56px]" />
-        <span className="text-[28px] font-semibold text-slate-950 tracking-tight">AzureIn</span>
+    <aside className="w-[255px] shrink-0 bg-white border-r border-slate-200 flex flex-col">
+      <div className="h-[84px] border-b border-slate-200 flex items-center px-6 gap-3.5 shrink-0">
+        <AzureMark className="w-8 h-8" />
+        <span className="text-[16px] font-semibold text-slate-950 tracking-tight">AzureIn</span>
       </div>
-      <nav className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+      <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
         {GROUPS.map((g) => (
           <div key={g.label}>
-            <div className="text-[12px] text-slate-400 px-3 mb-1.5">{g.label}</div>
-            <div className="space-y-0.5">
+            <div className="text-[12px] font-medium text-slate-400 px-2 mb-2">{g.label}</div>
+            <div className="space-y-1">
               {g.items.map((it) => (
                 <NavLink
                   key={it.to}
                   to={it.to}
                   className={({ isActive }) =>
-                    `group flex items-center gap-2.5 px-3 h-10 rounded-md text-sm transition ${
+                    `group flex items-center gap-3 px-3 h-10 rounded-lg text-[15px] transition ${
                       isActive
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-slate-600 hover:bg-slate-50"
+                        ? "bg-slate-100 text-slate-950 font-semibold"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                     }`
                   }
                 >
@@ -257,7 +257,7 @@ function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100">
+      <div className="px-4 py-3 text-[11px] text-slate-400 border-t border-slate-100">
         © 2026 AzureIn
       </div>
     </aside>
