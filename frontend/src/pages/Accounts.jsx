@@ -373,15 +373,15 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
             <EmptyState icon="🔑" text="还没有 Azure 账号" />
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="min-w-[1500px] table-fixed text-left text-sm">
+              <div className="w-full overflow-hidden">
+                <table className="w-full table-fixed text-left text-sm">
                   <colgroup>
-                    <col className="w-[33%]" />
-                    <col className="w-[17%]" />
-                    <col className="w-[23%]" />
-                    <col className="w-[10%]" />
-                    <col className="w-[10%]" />
-                    <col className="w-[7%]" />
+                    <col className="w-[27%]" />
+                    <col className="w-[16%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[12%]" />
                   </colgroup>
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
@@ -390,7 +390,7 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
                       <th className="px-3 h-10 font-medium text-xs align-middle">代理</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">订阅状态</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">最后检测</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle">操作</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle text-right">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -398,30 +398,30 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
                       return (
                         <tr key={a.id} className="border-b border-slate-100 transition hover:bg-slate-50/70">
                           <td className="p-3 align-middle">
-                            <div className="flex items-center gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
                               <input type="checkbox" className="h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600" checked={sel.includes(a.id)} onChange={() => toggle(a.id)} />
                               <AccountIcon />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 text-sm font-medium text-slate-950">
-                                  <span className="truncate">{a.alias}</span>
+                                <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-950">
+                                  <span className="truncate" title={a.alias}>{a.alias}</span>
                                   <CountryMark code={a.country_code} />
                                 </div>
-                                <div className="mt-1 break-all font-mono text-[12px] leading-5 text-slate-500">{a.tenant_id || "—"}</div>
+                                <div className="mt-1 truncate font-mono text-[12px] leading-5 text-slate-500" title={a.tenant_id || "—"}>{a.tenant_id || "—"}</div>
                               </div>
                             </div>
                           </td>
                           <td className="p-3 align-middle">
-                            <Badge color="blue" className="rounded-full px-3 py-1 text-[13px]">
-                              <span className="mr-1">◇</span>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}
+                            <Badge color="blue" className="max-w-full rounded-full px-3 py-1 text-[13px]">
+                              <span className="mr-1 shrink-0">◇</span><span className="min-w-0 truncate" title={a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}</span>
                             </Badge>
                           </td>
                           <td className="p-3 align-middle">
-                            {a.proxy_url || a.proxy_name ? <div className="break-all font-mono text-[13px] leading-5 text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
+                            {a.proxy_url || a.proxy_name ? <div className="truncate font-mono text-[13px] leading-5 text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
                           </td>
-                          <td className="p-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 break-words text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
-                          <td className="p-3 align-middle text-slate-500">{formatDateTime(a.last_checked)}</td>
+                          <td className="p-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
+                          <td className="p-3 align-middle truncate text-slate-500" title={formatDateTime(a.last_checked)}>{formatDateTime(a.last_checked)}</td>
                           <td className="p-3 align-middle">
-                            <div className="flex items-center gap-1 whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                               <ActionButton title="重新检测账户状态" onClick={() => testOne(a)} disabled={testing === a.id}><Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" /></ActionButton>
                               <ActionButton title="编辑" onClick={() => setEditInit(a)}><Svg d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></ActionButton>
                               <ActionButton title="删除" danger onClick={() => setConfirmDel(a.id)}><Svg d="M19 7l-.9 12.1A2 2 0 0116.1 21H7.9a2 2 0 01-2-1.9L5 7M10 11v6M14 11v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></ActionButton>
