@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth.jsx";
 import { Btn, Field, Input, Modal, SearchProvider } from "./ui.jsx";
 
@@ -100,6 +100,26 @@ function TopBar({ onSearch }) {
   const [pwModal, setPwModal] = useState(false);
   const menuRef = useRef(null);
   const initial = (user?.username || "A").slice(0, 1).toUpperCase();
+  const location = useLocation();
+
+  // 当前页面名称
+  const allItems = GROUPS.flatMap((g) => g.items);
+  const current = allItems.find((it) => location.pathname.startsWith(it.to));
+  const currentLabel = current?.label || "总览";
+
+  // 账号信息（从 localStorage 取第一个账号）
+  const [accountInfo, setAccountInfo] = useState("Azure 账号");
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("azure_accounts");
+      if (raw) {
+        const accs = JSON.parse(raw);
+        if (accs.length > 0) {
+          setAccountInfo(`${accs[0].alias || accs[0].name || "Azure 账号"} · East Asia`);
+        }
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const h = (e) => {
@@ -110,32 +130,52 @@ function TopBar({ onSearch }) {
   }, []);
 
   return (
-    <header className="h-14 bg-white border-b border-slate-200 flex items-center gap-4 px-4 shrink-0 sticky top-0 z-40">
-      <div className="flex items-center gap-2.5 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-[17px]">
-          A
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center gap-4 px-6 shrink-0 sticky top-0 z-40">
+      <div className="flex flex-col justify-center shrink-0 min-w-0">
+        <div className="flex items-center gap-1.5 text-[15px]">
+          <span className="text-slate-500">Azure面板</span>
+          <span className="text-slate-300">/</span>
+          <span className="font-medium text-slate-900">{currentLabel}</span>
+          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
-        <div className="leading-tight">
-          <div className="text-[15px] font-bold text-slate-900">Azure面板</div>
-          <div className="text-[10px] text-slate-400">Cloud control plane</div>
+        <div className="flex items-center gap-1.5 text-[13px] text-slate-500 mt-0.5">
+          <span className="truncate">{accountInfo}</span>
+          <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M16 15l-4 4-4-4" />
+          </svg>
         </div>
       </div>
       <div className="flex-1 flex justify-center">
-        <input
-          placeholder="搜索资源、任务或页面…"
-          onChange={(e) => onSearch(e.target.value)}
-          className="w-full max-w-md text-[13px] border border-slate-200 rounded-lg px-3.5 py-2 bg-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-        />
+        <div className="relative w-full max-w-md">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            placeholder="搜索资源、任务或页面..."
+            onChange={(e) => onSearch(e.target.value)}
+            className="w-full text-sm border border-slate-200 rounded-md pl-9 pr-12 py-2 bg-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 focus:bg-white"
+          />
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-sans">⌘K</kbd>
+        </div>
       </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <span className="text-[13px] text-slate-500">中文</span>
-        <button title="深色模式" className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 text-[16px]">
-          🌙
+      <div className="flex items-center gap-2 shrink-0">
+        <button className="flex items-center gap-1 text-sm text-slate-700 hover:text-slate-900 px-2 py-1.5 rounded-md hover:bg-slate-50">
+          中文
+          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M16 15l-4 4-4-4" />
+          </svg>
+        </button>
+        <button title="深色模式" className="w-9 h-9 rounded-md hover:bg-slate-100 text-slate-500 flex items-center justify-center">
+          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0012 21.75a8.25 8.25 0 009.752-6.748z" />
+          </svg>
         </button>
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenu((v) => !v)}
-            className="w-8 h-8 rounded-full bg-blue-600 text-white text-[13px] font-semibold flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-slate-900 text-white text-[13px] font-semibold flex items-center justify-center"
           >
             {initial}
           </button>

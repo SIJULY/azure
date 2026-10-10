@@ -116,26 +116,6 @@ function ChevronR() {
   return <Icon d="M9 5l7 7-7 7" className="h-5 w-5 text-slate-400" />;
 }
 
-function HeaderContext({ accounts }) {
-  const firstHealthy = accounts.find((a) => a.status === "healthy") || accounts[0];
-  return (
-    <div className="mb-8 flex flex-col gap-2">
-      <div className="flex items-center gap-2 text-[20px] font-semibold text-slate-950">
-        <span className="text-slate-500">AzureIn</span>
-        <span className="text-slate-300">/</span>
-        <span>总览</span>
-        <Icon d="M19 9l-7 7-7-7" className="h-4 w-4 text-slate-500" />
-      </div>
-      <div className="flex items-center gap-3 text-[15px] text-slate-500">
-        <span>{firstHealthy?.alias || "Azure 账号"}</span>
-        <span>·</span>
-        <span>East Asia</span>
-        <Icon d="M8 9l4-4 4 4M16 15l-4 4-4-4" className="ml-2 h-4 w-4 text-slate-400" />
-      </div>
-    </div>
-  );
-}
-
 function SyncNotice({ syncing, err }) {
   const visible = syncing || err;
   return (
@@ -472,7 +452,6 @@ export default function Overview() {
 
   return (
     <div className="pb-10">
-      <HeaderContext accounts={accounts} />
       <SyncNotice syncing={syncing} err={err} />
 
       <div className="mb-8">
