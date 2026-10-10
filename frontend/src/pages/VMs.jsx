@@ -103,11 +103,11 @@ function CreateModal({ accounts, onClose, onSaved }) {
 
   return (
     <Modal title="创建 Linux / Windows 虚拟机" onClose={onClose} wide>
-      <p className="text-[13px] text-slate-500 mb-4">
+      <p className="text-sm text-slate-500 mb-4">
         自动创建独立 VNet、NIC、静态公网 IP 和专用 NSG；NSG 默认 4096 优先级允许全部出入站。
       </p>
 
-      <div className="text-[13px] font-semibold text-slate-700 mb-2">基础配置</div>
+      <div className="text-sm font-semibold text-slate-700 mb-2">基础配置</div>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <Field label="Azure 账号">
           <Select value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value, resource_group: "", vm_size: "" })}>
@@ -140,11 +140,11 @@ function CreateModal({ accounts, onClose, onSaved }) {
         </Field>
       </div>
 
-      <div className="text-[13px] font-semibold text-slate-700 mb-2">系统镜像</div>
+      <div className="text-sm font-semibold text-slate-700 mb-2">系统镜像</div>
       <p className="text-[12px] text-slate-400 mb-3">
         常用镜像提供快捷选择；也可以浏览当前地区的 Azure Marketplace 或手工填写镜像标识。镜像本身与虚拟机、Windows 许可产生的费用以 Azure 账单为准。
       </p>
-      <div className="flex gap-5 mb-3 text-[13px]">
+      <div className="flex gap-5 mb-3 text-sm">
         {[
           ["common", "常用官方镜像"],
           ["market", "浏览 Azure Marketplace"],
@@ -176,7 +176,7 @@ function CreateModal({ accounts, onClose, onSaved }) {
         )}
       </div>
 
-      <div className="text-[13px] font-semibold text-slate-700 mb-2">登录与初始化</div>
+      <div className="text-sm font-semibold text-slate-700 mb-2">登录与初始化</div>
       <p className="text-[12px] text-slate-400 mb-3">设置客机管理员凭据，以及首次部署时运行的可选初始化内容。</p>
       <div className="grid grid-cols-2 gap-3 mb-3">
         <Field label="管理员用户名">
@@ -188,7 +188,7 @@ function CreateModal({ accounts, onClose, onSaved }) {
       </div>
       <label className="flex items-start gap-2.5 mb-3 cursor-pointer">
         <input type="checkbox" checked={f.ipv6} onChange={(e) => setF({ ...f, ipv6: e.target.checked })} className="mt-1" />
-        <span className="text-[13px]">
+        <span className="text-sm">
           <span className="text-slate-700 font-medium">启用 IPv6</span>
           <span className="block text-[12px] text-slate-400">保留 IPv4，并添加 IPv6 公网地址与双栈网络。</span>
         </span>
@@ -197,7 +197,7 @@ function CreateModal({ accounts, onClose, onSaved }) {
         <Textarea rows={4} value={f.user_data} onChange={(e) => setF({ ...f, user_data: e.target.value })} className="font-mono text-[12px]" />
       </Field>
 
-      {err && <p className="text-[13px] text-red-600 mt-3">{err}</p>}
+      {err && <p className="text-sm text-red-600 mt-3">{err}</p>}
       <div className="flex justify-end gap-2 mt-4">
         <Btn variant="secondary" onClick={onClose}>取消</Btn>
         <Btn disabled={busy || !valid} onClick={save}>{busy ? "提交中..." : "创建虚拟机"}</Btn>

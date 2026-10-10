@@ -6,15 +6,15 @@ export function Card({ title, sub, extra, children, className = "" }) {
   return (
     <div className={`bg-white border border-slate-200 rounded-xl ${className}`}>
       {(title || extra) && (
-        <div className="flex items-start justify-between px-5 pt-4 pb-1">
+        <div className="flex items-start justify-between p-4 pb-2">
           <div>
-            {title && <h3 className="text-[15px] font-semibold text-slate-900">{title}</h3>}
-            {sub && <p className="text-[13px] text-slate-500 mt-0.5">{sub}</p>}
+            {title && <h3 className="text-[14px] font-semibold text-slate-900">{title}</h3>}
+            {sub && <p className="text-[12px] text-slate-500 mt-0.5">{sub}</p>}
           </div>
           {extra && <div className="flex items-center gap-2 shrink-0">{extra}</div>}
         </div>
       )}
-      <div className="px-5 py-4">{children}</div>
+      <div className="px-4 pb-4">{children}</div>
     </div>
   );
 }
@@ -35,7 +35,7 @@ export function PageHead({ crumb, sub }) {
 
 /* ---------- 按钮 ---------- */
 const btnBase =
-  "inline-flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-lg px-3.5 py-2 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+  "inline-flex items-center justify-center gap-1.5 text-sm font-medium rounded-md px-4 h-9 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
 const btnVariants = {
   primary: "bg-blue-600 hover:bg-blue-700 text-white",
   secondary: "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50",

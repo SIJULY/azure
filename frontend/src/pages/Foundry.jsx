@@ -54,7 +54,7 @@ function EnsureModal({ accounts, tiers, onClose, onSaved }) {
 
   return (
     <Modal title="创建 Foundry 账号" onClose={onClose}>
-      <p className="text-[13px] text-slate-500 mb-4">创建 AIServices 账号并启用项目管理、本地 key1/key2 和系统托管身份。</p>
+      <p className="text-sm text-slate-500 mb-4">创建 AIServices 账号并启用项目管理、本地 key1/key2 和系统托管身份。</p>
       <div className="space-y-3">
         <Field label="Azure 账号">
           <Select value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value, resource_group: "" })}>
@@ -91,7 +91,7 @@ function EnsureModal({ accounts, tiers, onClose, onSaved }) {
             ))}
           </Select>
         </Field>
-        {err && <p className="text-[13px] text-red-600">{err}</p>}
+        {err && <p className="text-sm text-red-600">{err}</p>}
         <div className="flex justify-end gap-2 pt-1">
           <Btn variant="secondary" onClick={onClose}>取消</Btn>
           <Btn disabled={!canSubmit || busy} onClick={save}>{busy ? "创建中..." : "创建账号"}</Btn>
@@ -178,10 +178,10 @@ function BatchDeployModal({ accounts, tiers, resources, onClose }) {
       <div className="px-8 pt-7 pb-4 shrink-0">
         <div className="bg-slate-50 rounded-xl p-1.5 grid grid-cols-4 gap-1.5">
           {steps.map((s, i) => (
-            <div key={i} className={`relative flex items-center justify-center gap-3 rounded-lg py-3 text-[13px] ${
+            <div key={i} className={`relative flex items-center justify-center gap-3 rounded-lg py-3 text-sm ${
               i === 0 ? "bg-white text-slate-900 font-semibold shadow-sm" : "text-slate-400 font-medium"
             }`}>
-              <span className={`flex items-center justify-center w-7 h-7 rounded-lg text-[13px] font-semibold ${
+              <span className={`flex items-center justify-center w-7 h-7 rounded-lg text-sm font-semibold ${
                 i === 0 ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
               }`}>{i + 1}</span>
               <span>{s}</span>
@@ -200,7 +200,7 @@ function BatchDeployModal({ accounts, tiers, resources, onClose }) {
           </div>
           <div className="space-y-3">
             {filtered.length === 0 ? (
-              <div className="p-10 border border-slate-200 rounded-xl text-center text-[13px] text-slate-400">无匹配账号</div>
+              <div className="p-10 border border-slate-200 rounded-xl text-center text-sm text-slate-400">无匹配账号</div>
             ) : filtered.map((a) => {
               const t = tiers[a.id]?.quota_tier;
               const checked = sel.includes(a.id);
@@ -217,9 +217,9 @@ function BatchDeployModal({ accounts, tiers, resources, onClose }) {
                     <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-lg shrink-0">A</div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[15px] font-semibold text-slate-900 truncate">{a.alias}</div>
-                      <div className="text-[13px] text-slate-400 font-mono truncate mt-1">{a.subscription_id}</div>
+                      <div className="text-sm text-slate-400 font-mono truncate mt-1">{a.subscription_id}</div>
                     </div>
-                    {t && <Badge color="blue" className="!text-[13px] !px-3 !py-1">{t}</Badge>}
+                    {t && <Badge color="blue" className="!text-sm !px-3 !py-1">{t}</Badge>}
                   </label>
 
                   {checked && (
@@ -229,12 +229,12 @@ function BatchDeployModal({ accounts, tiers, resources, onClose }) {
                           type="button"
                           onClick={() => setFoundryMode((p) => ({ ...p, [a.id]: "existing" }))}
                           disabled={accountResources.length === 0}
-                          className={`rounded-lg px-4 py-2 text-[13px] font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${mode === "existing" ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50"}`}
+                          className={`rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${mode === "existing" ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50"}`}
                         >使用已有 Foundry</button>
                         <button
                           type="button"
                           onClick={() => setFoundryMode((p) => ({ ...p, [a.id]: "new" }))}
-                          className={`rounded-lg px-4 py-2 text-[13px] font-semibold transition ${mode === "new" ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50"}`}
+                          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${mode === "new" ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50"}`}
                         >新建 Foundry</button>
                       </div>
                       {mode === "existing" && accountResources.length > 0 ? (
@@ -275,7 +275,7 @@ function BatchDeployModal({ accounts, tiers, resources, onClose }) {
         <div className="w-[300px] shrink-0">
           <div className="border border-slate-200 rounded-xl bg-white overflow-hidden sticky top-0">
             <div className="px-5 py-4 text-[14px] font-semibold text-slate-900 border-b border-slate-100">部署摘要</div>
-            <div className="px-5 py-4 space-y-2 text-[13px]">
+            <div className="px-5 py-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-slate-500">Azure 账号</span><span className="font-medium">{sel.length}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">使用已有</span><span className="font-medium">{existingCount}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">本批次新建</span><span className="font-medium">{newCount}</span></div>
@@ -412,7 +412,7 @@ export default function Foundry() {
       {/* 筛选区 */}
       <div className="flex items-end gap-3 mb-4 flex-wrap">
         <div>
-          <div className="text-[13px] font-medium text-slate-700 mb-1.5">Azure 账号</div>
+          <div className="text-sm font-medium text-slate-700 mb-1.5">Azure 账号</div>
           <Select value={accountId} onChange={(e) => { setAccountId(e.target.value); setFoundryId("all"); }} className="w-64">
             <option value="all">全部账户</option>
             {accounts.map((a) => (
@@ -423,7 +423,7 @@ export default function Foundry() {
           </Select>
         </div>
         <div>
-          <div className="text-[13px] font-medium text-slate-700 mb-1.5">Foundry 账号</div>
+          <div className="text-sm font-medium text-slate-700 mb-1.5">Foundry 账号</div>
           <Select value={foundryId} onChange={(e) => setFoundryId(e.target.value)} className="w-56">
             <option value="all">全部账户</option>
             {allResources.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
