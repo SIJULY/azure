@@ -106,10 +106,22 @@ function AccountPicker({ accounts, tiers, value, onChange }) {
 
 const GROUP_OPTS = [
   ["resource_group", "资源组"],
-  ["service", "服务"],
-  ["meter", "计量类别"],
   ["none", "不分组"],
 ];
+
+function fmtTime(s) {
+  if (!s) return "-";
+  return String(s).replace("T", " ").slice(0, 19);
+}
+
+function fmtCost(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toFixed(12).replace(/0+$/, "").replace(/\.$/, "") : String(v ?? "");
+}
+
+function billingCostColumn(costType) {
+  return costType === "amortized" ? "Cost" : "PreTaxCost";
+}
 
 export default function Billing() {
   const toast = useToast();
@@ -137,15 +149,21 @@ export default function Billing() {
     }).catch(() => {});
   }, []);
 
-  const query = async () => {
+  const query = async (forceRefresh = false) => {
     if (!f.account_id) return toast("请先选择 Azure 账号");
     setLoading(true); setErr("");
     try {
-      const d = await api.get(
-        `/billing/range?account_id=${f.account_id}&start=${f.start}&end=${f.end}&group_by=${f.group_by}&cost_type=${f.cost_type}`,
-        { timeout: 90000 }
-      );
+      const qs = new URLSearchParams({
+        account_id: f.account_id,
+        start: f.start,
+        end: f.end,
+        group_by: f.group_by,
+        cost_type: f.cost_type,
+      });
+      if (forceRefresh) qs.set("force_refresh", "true");
+      const d = await api.get(`/billing/range?${qs.toString()}`, { timeout: 90000 });
       setData(d);
+      if (d.warning) toast(d.warning);
     } catch (e) { setErr(e.message); setData(null); }
     finally { setLoading(false); }
   };
@@ -154,7 +172,7 @@ export default function Billing() {
 
   return (
     <>
-      <PageHead crumb="账单费用" sub="分析订阅费用、趋势和资源分布。" />
+      <PageHead crumb="账单费用" sub="默认优先读取 20 分钟缓存，手动刷新才实时查询 Azure Cost Management。" />
       <Card className="mb-4">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
           <Field label="Azure 账号">
@@ -173,11 +191,25 @@ export default function Billing() {
               <option value="amortized">摊销费用</option>
             </Select>
           </Field>
-          <Btn onClick={query} disabled={loading}>{loading ? "查询中..." : "查询费用"}</Btn>
+          <div className="flex gap-2">
+            <Btn onClick={() => query(false)} disabled={loading} className="flex-1">{loading ? "查询中..." : "查询费用"}</Btn>
+            <Btn variant="secondary" onClick={() => query(true)} disabled={loading} className="flex-1">刷新 Azure</Btn>
+          </div>
         </div>
+        {data && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
+            <Badge color={data.stale ? "amber" : data.cached ? "blue" : "green"}>
+              {data.stale ? "旧缓存" : data.cached ? "缓存命中" : "Azure 实时"}
+            </Badge>
+            <span>更新时间：{fmtTime(data.generated_at)}</span>
+            {!data.stale && data.expires_at && <span>缓存有效至：{fmtTime(data.expires_at)}</span>}
+            {data.cache_ttl_seconds && <span>TTL：{Math.round(data.cache_ttl_seconds / 60)} 分钟</span>}
+          </div>
+        )}
       </Card>
 
       {err && <p className="text-[13px] text-red-600 mb-4">{err}</p>}
+      {data?.warning && <p className="text-[13px] text-amber-600 mb-4">{data.warning}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <Card title="区间总费用" sub="Azure Cost Management 返回的税前费用合计。">
@@ -200,15 +232,27 @@ export default function Billing() {
         </Card>
       </div>
 
-      <Card title="费用明细" sub="列由 Cost Management 动态返回。">
-        {loading ? <Loading text="拉取账单..." /> : !data || !data.details?.length ? (
+      <Card title="费用明细" sub="按 Cost Management 返回的每日明细行展示。">
+        {loading ? <Loading text="拉取账单..." /> : !data || (!(data.detail_rows || []).length && !(data.details || []).length) ? (
           <EmptyState icon="🧾" text="暂无数据" />
+        ) : (data.detail_rows || []).length ? (
+          <Table cols={[billingCostColumn(data.cost_type), "UsageDate", "ResourceGroup", "Currency"]}>
+            {data.detail_rows.map((d, i) => (
+              <tr key={`${d.usage_date || ""}-${d.resource_group || ""}-${i}`} className="border-b border-slate-50">
+                <Td className="font-mono">{fmtCost(d.cost)}</Td>
+                <Td className="font-mono">{d.usage_date || "-"}</Td>
+                <Td>{d.resource_group || "-"}</Td>
+                <Td>{d.currency || data.currency || "-"}</Td>
+              </tr>
+            ))}
+          </Table>
         ) : (
-          <Table cols={["资源组", "费用"]}>
+          <Table cols={["ResourceGroup", billingCostColumn(data.cost_type), "Currency"]}>
             {data.details.map((d, i) => (
               <tr key={i} className="border-b border-slate-50">
-                <Td>{d.resource_group}</Td>
-                <Td>{d.cost?.toFixed ? d.cost.toFixed(2) : d.cost} {data.currency}</Td>
+                <Td>{d.resource_group || "-"}</Td>
+                <Td className="font-mono">{fmtCost(d.cost)}</Td>
+                <Td>{data.currency || "-"}</Td>
               </tr>
             ))}
           </Table>

@@ -106,7 +106,7 @@ def _proxy_url_of(proxy: Proxy) -> str:
     return f"{scheme}://{auth}{proxy.host}:{proxy.port}"
 
 
-def query_cost_range(account_id: int, start: str, end: str, group_by: str = "none") -> dict:
+def query_cost_range(account_id: int, start: str, end: str, group_by: str = "none", cost_type: str = "actual") -> dict:
     """按日期区间查询费用（日粒度），支持按资源组分组。"""
     import requests as _requests
     from .db import SessionLocal as _SL
@@ -138,14 +138,16 @@ def query_cost_range(account_id: int, start: str, end: str, group_by: str = "non
         f"https://management.azure.com/subscriptions/{profile['subscription_id']}"
         f"/providers/Microsoft.CostManagement/query?api-version=2023-11-01"
     )
+    metric_name = "PreTaxCost" if cost_type == "actual" else "Cost"
     dataset: dict = {
         "granularity": "Daily",
-        "aggregation": {"totalCost": {"name": "PreTaxCost", "function": "Sum"}},
+        "aggregation": {"totalCost": {"name": metric_name, "function": "Sum"}},
     }
     if group_by == "resource_group":
         dataset["grouping"] = [{"type": "Dimension", "name": "ResourceGroupName"}]
+    query_type = "Usage" if cost_type == "actual" else "AmortizedCost"
     payload = {
-        "type": "Usage",
+        "type": query_type,
         "timeframe": "Custom",
         "timePeriod": {"from": start, "to": end},
         "dataset": dataset,
@@ -170,31 +172,50 @@ def query_cost_range(account_id: int, start: str, end: str, group_by: str = "non
         except ValueError:
             return -1
 
-    i_cost, i_curr, i_date, i_rg = _col("PreTaxCost"), _col("Currency"), _col("UsageDate"), _col("ResourceGroupName")
+    i_cost = _col(metric_name)
+    if i_cost < 0 and metric_name != "PreTaxCost":
+        i_cost = _col("PreTaxCost")
+    i_curr, i_date, i_rg = _col("Currency"), _col("UsageDate"), _col("ResourceGroupName")
     total = 0.0
     currency = ""
     daily: dict = {}
     details: dict = {}
+    detail_rows = []
     for r in rows:
         try:
             cost = float(r[i_cost]) if i_cost >= 0 else 0.0
         except (ValueError, TypeError, IndexError):
             cost = 0.0
+        row_currency = str(r[i_curr]) if i_curr >= 0 and i_curr < len(r) and r[i_curr] else ""
+        date_s = str(r[i_date]) if i_date >= 0 and i_date < len(r) and r[i_date] else ""
+        rg = str(r[i_rg]) if i_rg >= 0 and i_rg < len(r) and r[i_rg] else ""
+
         total += cost
-        if i_curr >= 0 and not currency:
-            currency = str(r[i_curr])
-        date_s = str(r[i_date])[:10] if i_date >= 0 else ""
-        rg = str(r[i_rg]) if i_rg >= 0 and r[i_rg] else ""
+        if row_currency and not currency:
+            currency = row_currency
         if date_s:
-            daily[date_s] = daily.get(date_s, 0.0) + cost
+            daily[date_s[:10]] = daily.get(date_s[:10], 0.0) + cost
         if rg:
             details[rg] = details.get(rg, 0.0) + cost
+        detail_rows.append({
+            "cost": cost,
+            "usage_date": date_s,
+            "resource_group": rg,
+            "currency": row_currency or currency or "USD",
+        })
+
+    detail_rows.sort(key=lambda x: (str(x.get("usage_date") or ""), str(x.get("resource_group") or "")))
 
     return {
         "total": round(total, 2),
         "currency": currency or "USD",
         "daily": [{"date": d, "cost": round(c, 2)} for d, c in sorted(daily.items())],
+        # Resource group summary is kept for backward compatibility.
         "details": [{"resource_group": k, "cost": round(v, 2)} for k, v in sorted(details.items(), key=lambda x: -x[1])],
+        # Per Azure Cost Management row, used by the billing details table.
+        "detail_rows": detail_rows,
+        "detail_columns": [metric_name, "UsageDate", "ResourceGroup", "Currency"],
+        "cost_type": cost_type,
     }
 
 
