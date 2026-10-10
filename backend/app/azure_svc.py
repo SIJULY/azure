@@ -17,6 +17,37 @@ SLOW_API_TIMEOUT = 50
 _cache = {}
 import time as _time
 
+_COUNTRY_ALIASES = {
+    "CHINA": "CN", "CN": "CN", "CHN": "CN", "PRC": "CN", "中国": "CN",
+    "UNITED STATES": "US", "UNITED STATES OF AMERICA": "US", "USA": "US", "US": "US",
+    "HONG KONG": "HK", "HONG KONG SAR": "HK", "HK": "HK",
+    "TAIWAN": "TW", "TW": "TW",
+    "SINGAPORE": "SG", "SG": "SG",
+    "JAPAN": "JP", "JP": "JP",
+    "KOREA": "KR", "SOUTH KOREA": "KR", "REPUBLIC OF KOREA": "KR", "KR": "KR",
+    "UNITED KINGDOM": "GB", "UK": "GB", "GB": "GB",
+    "GERMANY": "DE", "DE": "DE",
+    "FRANCE": "FR", "FR": "FR",
+    "CANADA": "CA", "CA": "CA",
+    "AUSTRALIA": "AU", "AU": "AU",
+    "INDIA": "IN", "IN": "IN",
+    "BRAZIL": "BR", "BR": "BR",
+}
+
+
+def normalize_country_code(value: str) -> str:
+    """Normalize Azure tenant country fields to a two-letter ISO country code when possible."""
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    key = raw.upper().replace("_", " ").replace("-", " ")
+    key = " ".join(key.split())
+    if key in _COUNTRY_ALIASES:
+        return _COUNTRY_ALIASES[key]
+    if len(key) == 2 and key.isalpha():
+        return key
+    return ""
+
 
 def cached(ttl=90, validate=None):
     """装饰器：缓存函数返回值 ttl 秒。key 由函数名+参数生成。
@@ -321,7 +352,7 @@ def test_connection(data: dict) -> dict:
                     tenants = tenants_resp.json().get("value", [])
                     current = next((t for t in tenants if (t.get("tenantId") or "").lower() == tenant_id.lower()), tenants[0] if tenants else {})
                     code = current.get("countryCode") or current.get("country") or ""
-                    country_code = str(code).strip().upper()[:8]
+                    country_code = normalize_country_code(code)
             except Exception:
                 country_code = ""
     except Exception as e:

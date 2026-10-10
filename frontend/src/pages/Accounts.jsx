@@ -18,6 +18,13 @@ const toFlagEmoji = (code) => {
   return cc.replace(/./g, (ch) => String.fromCodePoint(127397 + ch.charCodeAt(0)));
 };
 
+const CountryMark = ({ code }) => {
+  const cc = String(code || "").trim().toUpperCase();
+  const flag = toFlagEmoji(cc);
+  if (flag) return <span className="text-base leading-none" title={`注册国家/地区：${cc}`}>{flag}</span>;
+  return <span className="text-[12px] text-slate-300" title="暂未检测到注册国家/地区">—</span>;
+};
+
 const formatDateTime = (value) => {
   if (!value) return "—";
   const normalized = String(value).replace(" ", "T");
@@ -369,19 +376,17 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
               <div className="overflow-x-auto">
                 <table className="min-w-[1500px] table-fixed text-left text-sm">
                   <colgroup>
-                    <col className="w-[30%]" />
-                    <col className="w-[15%]" />
+                    <col className="w-[33%]" />
                     <col className="w-[17%]" />
-                    <col className="w-[17%]" />
-                    <col className="w-[8%]" />
-                    <col className="w-[8%]" />
-                    <col className="w-[5%]" />
+                    <col className="w-[23%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[7%]" />
                   </colgroup>
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
                       <th className="px-3 h-10 font-medium text-xs align-middle">名称</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">账户类型</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle">订阅</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">代理</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">订阅状态</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">最后检测</th>
@@ -390,7 +395,6 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
                   </thead>
                   <tbody>
                     {filtered.map((a) => {
-                      const flag = toFlagEmoji(a.country_code);
                       return (
                         <tr key={a.id} className="border-b border-slate-100 transition hover:bg-slate-50/70">
                           <td className="p-3 align-middle">
@@ -400,7 +404,7 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 text-sm font-medium text-slate-950">
                                   <span className="truncate">{a.alias}</span>
-                                  {flag && <span className="text-base leading-none" title={`注册资料：${a.country_code}`}>{flag}</span>}
+                                  <CountryMark code={a.country_code} />
                                 </div>
                                 <div className="mt-1 break-all font-mono text-[12px] leading-5 text-slate-500">{a.tenant_id || "—"}</div>
                               </div>
@@ -411,7 +415,6 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
                               <span className="mr-1">◇</span>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}
                             </Badge>
                           </td>
-                          <td className="p-3 align-middle"><div className="break-all font-mono text-[13px] leading-5 text-slate-600">{a.subscription_id || "—"}</div></td>
                           <td className="p-3 align-middle">
                             {a.proxy_url || a.proxy_name ? <div className="break-all font-mono text-[13px] leading-5 text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
                           </td>
