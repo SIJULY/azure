@@ -175,14 +175,14 @@ function Sidebar() {
                   key={it.to}
                   to={it.to}
                   className={({ isActive }) =>
-                    `group flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition ${
+                    `group flex items-center gap-2.5 px-3 h-10 rounded-md text-sm transition ${
                       isActive
                         ? "bg-blue-50 text-blue-700 font-medium"
                         : "text-slate-600 hover:bg-slate-50"
                     }`
                   }
                 >
-                  <span className="w-5 h-5 text-center text-slate-400 group-hover:text-slate-600">
+                  <span className="w-5 h-5 text-center text-slate-400 group-hover:text-slate-600 [&_svg]:w-5 [&_svg]:h-5">
                     <Icon d={ICONS[it.icon]} className="w-[18px] h-[18px]" />
                   </span>
                   {it.label}
