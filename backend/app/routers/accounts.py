@@ -246,10 +246,32 @@ def test_account(account_id: int, db: Session = Depends(get_db), _u: User = Depe
 @router.post("/batch-refresh")
 def batch_refresh(db: Session = Depends(get_db), _u: User = Depends(get_current_user)):
     """批量刷新全部账号状态。"""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from ..db import SessionLocal
+    
+    accounts = db.query(AzureAccount).order_by(AzureAccount.id).all()
+    account_ids = [a.id for a in accounts]
+    
+    def _test_by_id(aid: int):
+        s = SessionLocal()
+        try:
+            a = s.query(AzureAccount).filter_by(id=aid).first()
+            if not a:
+                return None
+            r = _do_test(a, s)
+            return {"id": a.id, "alias": a.alias, **r}
+        finally:
+            s.close()
+            
     results = []
-    for a in db.query(AzureAccount).order_by(AzureAccount.id).all():
-        r = _do_test(a, db)
-        results.append({"id": a.id, "alias": a.alias, **r})
+    # 使用线程池并发检测，加快批量刷新速度
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(_test_by_id, aid) for aid in account_ids]
+        for f in as_completed(futures):
+            res = f.result()
+            if res:
+                results.append(res)
+                
     record_operation(db, "account_batch_refresh", f"批量刷新 {len(results)} 个 Azure 账号", resource="Azure 账号", operator=_u, detail={"count": len(results)})
     return results
 

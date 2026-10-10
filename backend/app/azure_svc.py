@@ -323,7 +323,7 @@ def get_manager(account_id: int, db: Session | None = None, full: bool = False) 
         if acct.last_checked and acct.status == "healthy":
             try:
                 last_time = datetime.strptime(acct.last_checked, "%Y-%m-%d %H:%M:%S")
-                if now - last_time < timedelta(minutes=1):
+                if now - last_time < timedelta(minutes=10):
                     should_update = False
             except ValueError:
                 pass
