@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { publishResourceGroupOverview } from "../overviewSync.js";
 import {
-  Badge, Btn, Card, Confirm, EmptyState, Field, Input, Loading,
-  Modal, PageHead, Select, Textarea, useSearch, useToast,
+  AccountSelect, Badge, Btn, Card, Confirm, EmptyState, Field, Input, Loading,
+  Modal, PageHead, RegionSelect, Select, Textarea, useSearch, useToast,
 } from "../ui.jsx";
-import { REGIONS, regionLabel } from "../regions.js";
+import { REGIONS } from "../regions.js";
 
 function TrashIcon({ className = "w-[18px] h-[18px]" }) {
   return (
@@ -47,17 +47,13 @@ function CreateRgModal({ accounts, onClose, onSaved }) {
     <Modal title="创建资源组" onClose={onClose}>
       <div className="space-y-3">
         <Field label="Azure 账号">
-          <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.alias}</option>)}
-          </Select>
+          <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} />
         </Field>
         <Field label="名称">
           <Input value={name} placeholder="如 rg-prod" onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="区域">
-          <Select value={region} onChange={(e) => setRegion(e.target.value)}>
-            {REGIONS.map((r) => <option key={r[0]} value={r[0]}>{regionLabel(r)}</option>)}
-          </Select>
+          <RegionSelect regions={REGIONS} value={region} onChange={setRegion} />
         </Field>
         <Field label="标签" hint="每行 key=value">
           <Textarea rows={2} value={tags} onChange={(e) => setTags(e.target.value)} className="font-mono text-[12px]" />
@@ -157,20 +153,10 @@ export default function ResourceGroups() {
       <PageHead crumb="资源组" sub="创建、查看和删除 Azure 资源组。" />
       <div className="flex items-end gap-2 mb-4 flex-wrap">
         <Field label="Azure 账号" className="min-w-[260px] flex-1 max-w-sm">
-          <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-            <option value="all">全部账户</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.alias} {a.subscription_id} {tiers[a.id] || ""}
-              </option>
-            ))}
-          </Select>
+          <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} includeAll tiers={tiers} />
         </Field>
         <Field label="区域" className="w-44">
-          <Select value={region} onChange={(e) => setRegion(e.target.value)}>
-            <option value="all">全部地区</option>
-            {regions.map((r) => <option key={r} value={r}>{r}</option>)}
-          </Select>
+          <RegionSelect regions={regions} value={region} onChange={setRegion} includeAll />
         </Field>
         <div className="flex-1" />
         <Btn variant="secondary" onClick={() => load(true)} disabled={loading}>{loading ? "刷新中" : "刷新"}</Btn>

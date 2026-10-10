@@ -3,10 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 import { publishVmOverview } from "../overviewSync.js";
 import {
-  Badge, Btn, Card, Confirm, EmptyState, Field, Input, Loading,
-  Modal, PageHead, Select, Textarea, useSearch, useToast,
+  AccountSelect, Badge, Btn, Card, Confirm, EmptyState, Field, Input, Loading,
+  Modal, PageHead, RegionSelect, Select, Textarea, useSearch, useToast,
 } from "../ui.jsx";
-import { REGIONS, regionLabel } from "../regions.js";
+import { REGIONS } from "../regions.js";
 
 const COMMON_IMAGES = [
   { key: "ubuntu2204", label: "Ubuntu Server 22.04 LTS" },
@@ -110,9 +110,7 @@ function CreateModal({ accounts, onClose, onSaved }) {
       <div className="text-sm font-semibold text-slate-700 mb-2">基础配置</div>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <Field label="Azure 账号">
-          <Select value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value, resource_group: "", vm_size: "" })}>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.alias}</option>)}
-          </Select>
+          <AccountSelect accounts={accounts} value={f.account_id} onChange={(v) => setF({ ...f, account_id: v, resource_group: "", vm_size: "" })} />
         </Field>
         <Field label="机器名" required>
           <Input value={f.vm_name} placeholder="如 vm-prod-01" onChange={(e) => setF({ ...f, vm_name: e.target.value })} />
@@ -124,9 +122,7 @@ function CreateModal({ accounts, onClose, onSaved }) {
           </Select>
         </Field>
         <Field label="区域">
-          <Select value={f.region} onChange={(e) => setF({ ...f, region: e.target.value, vm_size: "" })}>
-            {(apiRegions.length ? apiRegions : REGIONS).map((r) => <option key={r[0]} value={r[0]}>{regionLabel(r)}</option>)}
-          </Select>
+          <RegionSelect regions={apiRegions.length ? apiRegions : REGIONS} value={f.region} onChange={(v) => setF({ ...f, region: v, vm_size: "" })} />
         </Field>
         <Field label="规格" required className="col-span-2">
           {allowCustomSize ? (
@@ -376,16 +372,10 @@ export default function VMs() {
       <PageHead crumb="虚拟机" sub="管理机器生命周期、网络和初始化脚本。" />
       <div className="flex items-end gap-2 mb-4 flex-wrap">
         <Field label="Azure 账号" className="w-52">
-          <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-            <option value="all">全部账户</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.alias}</option>)}
-          </Select>
+          <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} includeAll />
         </Field>
         <Field label="区域" className="w-40">
-          <Select value={region} onChange={(e) => setRegion(e.target.value)}>
-            <option value="all">全部地区</option>
-            {regions.map((r) => <option key={r} value={r}>{r}</option>)}
-          </Select>
+          <RegionSelect regions={regions} value={region} onChange={setRegion} includeAll />
         </Field>
         <div className="flex-1" />
         <Btn variant="secondary" onClick={() => load(true, true)} disabled={loading || refreshing}>{refreshing ? "刷新中..." : "刷新"}</Btn>

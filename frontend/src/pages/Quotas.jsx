@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
 import {
-  Badge, Btn, Card, Check, EmptyState, Field, Input, Loading,
-  PageHead, Select, Table, Td, useSearch, useToast,
+  AccountSelect, Badge, Btn, Card, Check, EmptyState, Field, Input, Loading,
+  PageHead, RegionSelect, Select, Table, Td, useSearch, useToast,
 } from "../ui.jsx";
-import { REGIONS, regionLabel } from "../regions.js";
+import { REGIONS } from "../regions.js";
 
 const CN_NAMES = {
   availabilitySets: "可用性集",
@@ -183,14 +183,10 @@ export default function Quotas() {
       <Card className="mb-4">
         <div className="flex gap-3 items-end flex-wrap">
           <Field label="Azure 账号" className="min-w-[220px] flex-1">
-            <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.alias}</option>)}
-            </Select>
+            <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} />
           </Field>
           <Field label="区域" className="w-64">
-            <Select value={region} onChange={(e) => setRegion(e.target.value)}>
-              {REGIONS.map((r) => <option key={r[0]} value={r[0]}>{regionLabel(r)}</option>)}
-            </Select>
+            <RegionSelect regions={REGIONS} value={region} onChange={setRegion} />
           </Field>
           <Btn onClick={query} disabled={loading}>{loading ? "查询中..." : "查询配额"}</Btn>
         </div>

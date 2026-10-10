@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
-import { Badge, Btn, Card, EmptyState, Field, Input, Loading, PageHead, Select, Table, Td, useToast } from "../ui.jsx";
+import { AccountSelect, Badge, Btn, Card, EmptyState, Field, Input, Loading, PageHead, Select, Table, Td, useToast } from "../ui.jsx";
 
 function fmt(d) {
   return d.toISOString().slice(0, 10);
@@ -41,66 +41,6 @@ function LineChart({ daily }) {
         </g>
       ))}
     </svg>
-  );
-}
-
-/* ---------- 带搜索的账号下拉 ---------- */
-function AccountPicker({ accounts, tiers, value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState("");
-  const ref = useRef(null);
-  const sel = accounts.find((a) => String(a.id) === String(value));
-
-  useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return accounts.filter((a) =>
-      !s || (a.alias || "").toLowerCase().includes(s) || (a.subscription_id || "").toLowerCase().includes(s)
-    );
-  }, [accounts, q]);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full text-[13px] border border-slate-300 rounded-lg px-3 py-2 bg-white text-left text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between gap-2"
-      >
-        <span className="truncate">{sel ? sel.alias : "请选择账号"}</span>
-        <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
-          <div className="p-2 border-b border-slate-100">
-            <Input placeholder="搜索账户或订阅 ID…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
-          </div>
-          <div className="max-h-56 overflow-y-auto py-1">
-            {filtered.length === 0 && <div className="px-3 py-4 text-[13px] text-slate-400 text-center">无匹配账号</div>}
-            {filtered.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => { onChange(String(a.id)); setOpen(false); setQ(""); }}
-                className={`w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 ${String(a.id) === String(value) ? "bg-blue-50" : ""}`}
-              >
-                <span className="flex-1 min-w-0">
-                  <span className="block text-[13px] text-slate-900 truncate">{a.alias}</span>
-                  <span className="block text-[11px] text-slate-400 font-mono truncate">{a.subscription_id}</span>
-                </span>
-                {tiers[a.id] && <Badge color="blue">{tiers[a.id]}</Badge>}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -176,7 +116,7 @@ export default function Billing() {
       <Card className="mb-4">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
           <Field label="Azure 账号">
-            <AccountPicker accounts={accounts} tiers={tiers} value={f.account_id} onChange={(v) => setF({ ...f, account_id: v })} />
+            <AccountSelect accounts={accounts} tiers={tiers} value={f.account_id} onChange={(v) => setF({ ...f, account_id: v })} />
           </Field>
           <Field label="开始"><Input type="date" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} /></Field>
           <Field label="结束"><Input type="date" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} /></Field>

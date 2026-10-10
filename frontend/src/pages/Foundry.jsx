@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
 import { publishFoundryOverview } from "../overviewSync.js";
 import {
-  Badge, Btn, Card, EmptyState, Field, Input, Loading,
-  Modal, PageHead, Select, Table, Td, useToast,
+  AccountSelect, Badge, Btn, Card, EmptyState, Field, Input, Loading,
+  Modal, PageHead, RegionSelect, Select, Table, Td, useToast,
 } from "../ui.jsx";
 
 /* 37 个 Foundry 支持区域：(国别) 显示名 code */
-import { REGIONS, regionLabel } from "../regions.js";
+import { REGIONS } from "../regions.js";
 
 const RefreshIcon = ({ spinning }) => (
   <svg className={`w-3.5 h-3.5 ${spinning ? "animate-spin" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -57,16 +57,7 @@ function EnsureModal({ accounts, tiers, onClose, onSaved }) {
       <p className="text-sm text-slate-500 mb-4">创建 AIServices 账号并启用项目管理、本地 key1/key2 和系统托管身份。</p>
       <div className="space-y-3">
         <Field label="Azure 账号">
-          <Select value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value, resource_group: "" })}>
-            {accounts.map((a) => {
-              const t = tiers[a.id];
-              return (
-                <option key={a.id} value={a.id}>
-                  {a.alias} / {a.subscription_id} / {t?.quota_tier || "未知"}
-                </option>
-              );
-            })}
-          </Select>
+          <AccountSelect accounts={accounts} tiers={tiers} value={f.account_id} onChange={(v) => setF({ ...f, account_id: v, resource_group: "" })} />
         </Field>
         <Field label="账号名">
           <Input value={f.name} placeholder="输入账号名称" onChange={(e) => setF({ ...f, name: e.target.value })} />
@@ -84,12 +75,7 @@ function EnsureModal({ accounts, tiers, onClose, onSaved }) {
           </Select>
         </Field>
         <Field label="区域">
-          <Select value={f.region} onChange={(e) => setF({ ...f, region: e.target.value })}>
-            <option value="">请选择</option>
-            {REGIONS.map((r) => (
-              <option key={r[0]} value={r[0]}>{regionLabel(r)}</option>
-            ))}
-          </Select>
+          <RegionSelect regions={REGIONS} value={f.region} onChange={(v) => setF({ ...f, region: v })} />
         </Field>
         {err && <p className="text-sm text-red-600">{err}</p>}
         <div className="flex justify-end gap-2 pt-1">
@@ -411,24 +397,15 @@ export default function Foundry() {
 
       {/* 筛选区 */}
       <div className="flex items-end gap-3 mb-4 flex-wrap">
-        <div>
-          <div className="text-sm font-medium text-slate-700 mb-1.5">Azure 账号</div>
-          <Select value={accountId} onChange={(e) => { setAccountId(e.target.value); setFoundryId("all"); }} className="w-64">
-            <option value="all">全部账户</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.alias} / {a.subscription_id} / {tiers[a.id]?.quota_tier || "未知"}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <div className="text-sm font-medium text-slate-700 mb-1.5">Foundry 账号</div>
+        <Field label="Azure 账号">
+          <AccountSelect accounts={accounts} tiers={tiers} value={accountId} onChange={(v) => { setAccountId(v); setFoundryId("all"); }} includeAll className="w-64" />
+        </Field>
+        <Field label="Foundry 账号">
           <Select value={foundryId} onChange={(e) => setFoundryId(e.target.value)} className="w-56">
             <option value="all">全部账户</option>
             {allResources.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
           </Select>
-        </div>
+        </Field>
         <div className="pb-0">
           <Btn variant="secondary" onClick={refreshAll} disabled={refreshing} className="inline-flex items-center gap-1.5">
             <RefreshIcon spinning={refreshing} />

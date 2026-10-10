@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
-import { EmptyState, Select, StatusBadge } from "../ui.jsx";
+import { AccountSelect, EmptyState, RegionSelect, StatusBadge } from "../ui.jsx";
 import { OVERVIEW_UPDATED_EVENT, normalizeOverviewData, readOverviewCache, writeOverviewCache } from "../overviewSync.js";
 
 const DOT = {
@@ -315,17 +315,22 @@ function QuotaCard({ accounts }) {
     >
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <label className="space-y-2">
-          <div className="text-[14px] font-semibold text-slate-800">Azure 账号</div>
-          <Select value={aid} onChange={(e) => setAid(e.target.value)}>
-            {healthy.length === 0 && <option value="">暂无健康账号</option>}
-            {healthy.map((a) => <option key={a.id} value={a.id}>{a.alias || `账号 #${a.id}`}</option>)}
-          </Select>
+          <div className="text-[14px] font-semibold text-slate-800 flex items-center gap-1.5">
+            <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z" />
+            </svg>
+            Azure 账号
+          </div>
+          <AccountSelect accounts={healthy} value={aid} onChange={setAid} disabled={healthy.length === 0} />
         </label>
         <label className="space-y-2">
-          <div className="text-[14px] font-semibold text-slate-800">区域</div>
-          <Select value={region} onChange={(e) => setRegion(e.target.value)}>
-            {regions.map((r) => <option key={r} value={r}>{r}</option>)}
-          </Select>
+          <div className="text-[14px] font-semibold text-slate-800 flex items-center gap-1.5">
+            <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+            </svg>
+            区域
+          </div>
+          <RegionSelect regions={regions} value={region} onChange={setRegion} disabled={regions.length === 0} />
         </label>
       </div>
       {loading && <div className="py-10 text-center text-[14px] text-slate-400">正在读取配额缓存...</div>}
