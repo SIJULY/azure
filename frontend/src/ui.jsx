@@ -24,18 +24,9 @@ export function Card({ title, sub, extra, children, className = "" }) {
   );
 }
 
-/* ---------- 页面头：面包屑 + 副标题 ---------- */
-export function PageHead({ crumb, sub }) {
-  return (
-    <div className="mb-4">
-      <div className="text-[15px] text-slate-900">
-        <span className="text-slate-500">Azure面板</span>
-        <span className="text-slate-300 mx-1.5">/</span>
-        <span className="font-medium">{crumb}</span>
-      </div>
-      {sub && <p className="text-[13px] text-slate-500 mt-1">{sub}</p>}
-    </div>
-  );
+/* ---------- 页面头：标题已统一放到共享顶部栏 ---------- */
+export function PageHead() {
+  return null;
 }
 
 /* ---------- 按钮 ---------- */

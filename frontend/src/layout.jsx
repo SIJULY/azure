@@ -94,28 +94,67 @@ function ChangePasswordModal({ onClose }) {
   );
 }
 
+function AzureMark({ className = "w-9 h-9" }) {
+  return (
+    <div className={`${className} relative shrink-0`} aria-hidden="true">
+      <div className="absolute left-[5%] top-[2%] h-[96%] w-[48%] skew-x-[-17deg] rounded-[3px] bg-gradient-to-b from-sky-400 to-blue-700" />
+      <div className="absolute right-[5%] top-[2%] h-[96%] w-[48%] skew-x-[17deg] rounded-[3px] bg-gradient-to-b from-cyan-300 to-blue-600" />
+      <div className="absolute left-[29%] bottom-[24%] h-[26%] w-[42%] skew-x-[-18deg] bg-white/35" />
+    </div>
+  );
+}
+
+function ChevronDown({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function ChevronSort({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M16 15l-4 4-4-4" />
+    </svg>
+  );
+}
+
+function TopBrandBar() {
+  return (
+    <div className="h-[74px] bg-white border-b border-slate-200 px-4 py-3 shrink-0">
+      <div className="h-full w-full rounded-[24px] border border-slate-200 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.08)] flex items-center justify-center gap-3">
+        <AzureMark className="w-8 h-8" />
+        <span className="text-[18px] font-medium text-slate-600 tracking-tight">AzureIn</span>
+      </div>
+    </div>
+  );
+}
+
+
 function TopBar({ onSearch }) {
   const { user, logout } = useAuth();
   const [menu, setMenu] = useState(false);
   const [pwModal, setPwModal] = useState(false);
   const menuRef = useRef(null);
-  const initial = (user?.username || "A").slice(0, 1).toUpperCase();
+  const initial = (user?.username || "SI").slice(0, 2).toUpperCase();
   const location = useLocation();
 
-  // 当前页面名称
   const allItems = GROUPS.flatMap((g) => g.items);
   const current = allItems.find((it) => location.pathname.startsWith(it.to));
   const currentLabel = current?.label || "总览";
 
-  // 账号信息（从 localStorage 取第一个账号）
-  const [accountInfo, setAccountInfo] = useState("Azure 账号");
+  const [accountInfo, setAccountInfo] = useState("Azure for Students · West US 2");
   useEffect(() => {
     try {
       const raw = localStorage.getItem("azure_accounts");
       if (raw) {
         const accs = JSON.parse(raw);
         if (accs.length > 0) {
-          setAccountInfo(`${accs[0].alias || accs[0].name || "Azure 账号"} · East Asia`);
+          const acc = accs[0];
+          const name = acc.alias || acc.name || acc.display_name || "Azure for Students";
+          const region = acc.region || acc.location || "West US 2";
+          setAccountInfo(`${name} · ${region}`);
         }
       }
     } catch {}
@@ -130,69 +169,51 @@ function TopBar({ onSearch }) {
   }, []);
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center gap-4 px-6 shrink-0 sticky top-0 z-40">
-      <div className="flex flex-col justify-center shrink-0 min-w-0">
-        <div className="flex items-center gap-1.5 text-[15px]">
-          <span className="text-slate-500">Azure面板</span>
-          <span className="text-slate-300">/</span>
-          <span className="font-medium text-slate-900">{currentLabel}</span>
-          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
+    <header className="h-[128px] bg-white border-b border-slate-200 flex items-center gap-6 px-12 shrink-0 sticky top-0 z-40">
+      <div className="flex flex-col justify-center shrink-0 min-w-[360px]">
+        <div className="flex items-center gap-4 text-[18px] leading-none">
+          <span className="text-slate-500 font-normal">AzureIn</span>
+          <span className="text-slate-500 text-[24px] font-light">/</span>
+          <button className="inline-flex items-center gap-2 text-slate-950 font-semibold hover:text-slate-700">
+            {currentLabel}
+            <ChevronDown className="w-4 h-4 text-slate-950" />
+          </button>
         </div>
-        <div className="flex items-center gap-1.5 text-[13px] text-slate-500 mt-0.5">
-          <span className="truncate">{accountInfo}</span>
-          <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M16 15l-4 4-4-4" />
-          </svg>
-        </div>
-      </div>
-      <div className="flex-1 flex justify-center">
-        <div className="relative w-full max-w-md">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          <input
-            placeholder="搜索资源、任务或页面..."
-            onChange={(e) => onSearch(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-md pl-9 pr-12 py-2 bg-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 focus:bg-white"
-          />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-sans">⌘K</kbd>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button className="flex items-center gap-1 text-sm text-slate-700 hover:text-slate-900 px-2 py-1.5 rounded-md hover:bg-slate-50">
-          中文
-          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M16 15l-4 4-4-4" />
-          </svg>
+        <button className="mt-6 inline-flex items-center gap-3 text-[17px] leading-none text-slate-500 hover:text-slate-700 w-fit">
+          <span className="truncate max-w-[420px]">{accountInfo}</span>
+          <ChevronSort className="w-4 h-4 text-slate-400" />
         </button>
-        <button title="深色模式" className="w-9 h-9 rounded-md hover:bg-slate-100 text-slate-500 flex items-center justify-center">
-          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+      </div>
+      <div className="flex-1" />
+      <div className="relative w-[44vw] max-w-[760px] min-w-[360px]">
+        <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+        <input
+          placeholder="搜索资源、任务或页面..."
+          onChange={(e) => onSearch(e.target.value)}
+          className="h-[58px] w-full rounded-[14px] border border-slate-200 bg-white pl-14 pr-16 text-[17px] font-semibold text-slate-700 placeholder:text-slate-400 shadow-[0_0_0_1px_rgba(15,23,42,0.03)] focus:outline-none focus:ring-2 focus:ring-slate-200"
+        />
+        <kbd className="absolute right-5 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-slate-500 font-sans">⌘K</kbd>
+      </div>
+      <div className="flex items-center gap-8 shrink-0">
+        <button className="flex items-center gap-3 text-[18px] font-semibold text-slate-950 hover:text-slate-700">
+          中文
+          <ChevronSort className="w-4 h-4 text-slate-400" />
+        </button>
+        <button title="深色模式" className="w-11 h-11 rounded-full hover:bg-slate-100 text-slate-950 flex items-center justify-center">
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0012 21.75a8.25 8.25 0 009.752-6.748z" />
           </svg>
         </button>
         <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenu((v) => !v)}
-            className="w-8 h-8 rounded-full bg-slate-900 text-white text-[13px] font-semibold flex items-center justify-center"
-          >
+          <button onClick={() => setMenu((v) => !v)} className="w-[58px] h-[58px] rounded-full bg-black text-white text-[22px] font-semibold flex items-center justify-center">
             {initial}
           </button>
           {menu && (
-            <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-200 rounded-lg shadow-lg py-1 text-[13px]">
-              <button
-                className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700"
-                onClick={() => { setMenu(false); setPwModal(true); }}
-              >
-                改密码
-              </button>
-              <button
-                className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700"
-                onClick={logout}
-              >
-                退出登录
-              </button>
+            <div className="absolute right-0 mt-3 w-36 bg-white border border-slate-200 rounded-lg shadow-lg py-1 text-[13px] z-50">
+              <button className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700" onClick={() => { setMenu(false); setPwModal(true); }}>改密码</button>
+              <button className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700" onClick={logout}>退出登录</button>
             </div>
           )}
         </div>
@@ -204,8 +225,12 @@ function TopBar({ onSearch }) {
 
 function Sidebar() {
   return (
-    <aside className="w-52 shrink-0 bg-white border-r border-slate-200 flex flex-col">
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+    <aside className="w-[478px] shrink-0 bg-white border-r border-slate-200 flex flex-col">
+      <div className="h-[128px] border-b border-slate-200 flex items-center px-10 gap-6 shrink-0">
+        <AzureMark className="w-[56px] h-[56px]" />
+        <span className="text-[28px] font-semibold text-slate-950 tracking-tight">AzureIn</span>
+      </div>
+      <nav className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
         {GROUPS.map((g) => (
           <div key={g.label}>
             <div className="text-[12px] text-slate-400 px-3 mb-1.5">{g.label}</div>
@@ -232,8 +257,8 @@ function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="px-4 py-3 text-[11px] text-slate-400 border-t border-slate-100">
-        © 2026 Azure Panel
+      <div className="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100">
+        © 2026 AzureIn
       </div>
     </aside>
   );
@@ -253,12 +278,13 @@ export default function Layout() {
 
   return (
     <SearchProvider value={[query, setQuery]}>
-      <div className="h-full flex flex-col">
-        <TopBar onSearch={setQuery} />
+      <div className="h-full flex flex-col bg-slate-50">
+        <TopBrandBar />
         <div className="flex-1 flex min-h-0">
           <Sidebar />
-          <main className="app-main-content flex-1 overflow-y-auto">
-            <div className="max-w-[1500px] mx-auto px-4 py-4 sm:px-6">
+          <main className="app-main-content flex-1 flex flex-col min-w-0 overflow-hidden">
+            <TopBar onSearch={setQuery} />
+            <div className="flex-1 overflow-y-auto px-6 py-6">
               <Outlet />
             </div>
           </main>
