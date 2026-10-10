@@ -1,0 +1,107 @@
+/* ---------- 创建 Foundry 账号弹窗 ---------- */
+function EnsureModal({ accounts, tiers, onClose, onSaved }) {
+  const toast = useToast();
+  const [f, setF] = useState({
+    account_id: accounts[0]?.id ? String(accounts[0].id) : "",
+    name: "", resource_group: "", region: "",
+  });
+  const [rgs, setRgs] = useState([]);
+  const [apiRegions, setApiRegions] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!f.account_id) return;
+    setRgs([]);
+    api.get(`/resource-groups?account_id=${f.account_id}`).then((d) => {
+      setRgs(Array.isArray(d) ? d : []);
+    }).catch(() => {});
+
+    setApiRegions([]);
+    api.get(`/foundry/regions?account_id=${f.account_id}`).then((d) => {
+      const arr = d.regions || (Array.isArray(d) ? d : []);
+      if (arr.length > 0) {
+        setApiRegions(arr);
+      }
+    }).catch(() => {});
+  }, [f.account_id]);
+
+  const save = async () => {
+    setErr("");
+    if (!f.account_id || !f.name.trim() || !f.resource_group || !f.region) return;
+    setBusy(true);
+    try {
+      await api.post("/foundry/ensure", {
+        account_id: Number(f.account_id),
+        name: f.name.trim(),
+        resource_group: f.resource_group,
+        region: f.region,
+      });
+      toast("创建任务已提交，去任务中心查看", { action: "/jobs", actionLabel: "去查看" });
+      onSaved();
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  const canSubmit = f.account_id && f.name.trim() && f.resource_group && f.region;
+
+  return (
+    <Modal title="创建 Foundry 账号" onClose={onClose}>
+      <p className="text-sm text-slate-500 mb-4">创建 AIServices 账号并启用项目管理、本地 key1/key2 和系统托管身份。</p>
+      <div className="space-y-3">
+        <Field label="Azure 账号">
+          <Select value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value, resource_group: "" })}>
+            {accounts.map((a) => {
+              const t = tiers[a.id];
+              return (
+                <option key={a.id} value={a.id}>
+                  {a.alias} / {a.subscription_id} / {t?.quota_tier || "未知"}
+                </option>
+              );
+            })}
+          </Select>
+        </Field>
+        <Field label="账号名">
+          <Input value={f.name} placeholder="输入账号名称" onChange={(e) => setF({ ...f, name: e.target.value })} />
+        </Field>
+        <Field label="资源组">
+          <Select value={f.resource_group} onChange={(e) => setF({ ...f, resource_group: e.target.value })}>
+            <option value="">请选择</option>
+            {rgs.length > 0 && (
+              <optgroup label="已有资源组">
+                {rgs.map((r, i) => (
+                  <option key={i} value={r.name}>{r.name}（{r.location}）</option>
+                ))}
+              </optgroup>
+            )}
+          </Select>
+        </Field>
+        <Field label="区域">
+          <Select value={f.region} onChange={(e) => setF({ ...f, region: e.target.value })}>
+            <option value="">请选择</option>
+            {apiRegions.length > 0 
+              ? apiRegions.map((r) => (
+                  <option key={r.code} value={r.code}>{r.display} ({r.name})</option>
+                ))
+              : REGIONS.map((r) => (
+                  <option key={r[0]} value={r[0]}>{regionLabel(r)}</option>
+                ))
+            }
+          </Select>
+        </Field>
+        {err && <p className="text-sm text-red-600">{err}</p>}
+        <div className="flex justify-end gap-2 pt-1">
+          <Btn variant="secondary" onClick={onClose}>取消</Btn>
+          <Btn disabled={!canSubmit || busy} onClick={save}>{busy ? "创建中..." : "创建账号"}</Btn>
+          <Btn variant="secondary" onClick={onClose}>关闭</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ---------- 批量部署模型弹窗（四步向导，第一步） ---------- */
+function BatchDeployModal({ accounts, tiers, resources, onClose }) {
+  const toast = useToast();
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState([]);
+  const [foundryMode, setFoundryMode] = useState({});

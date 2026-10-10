@@ -1,0 +1,91 @@
+/* ---------- 创建 Foundry 账号弹窗 ---------- */
+function EnsureModal({ accounts, tiers, onClose, onSaved }) {
+  const toast = useToast();
+  const [f, setF] = useState({
+    account_id: accounts[0]?.id ? String(accounts[0].id) : "",
+    name: "", resource_group: "rg-foundry", region: "",
+  });
+  const [apiRegions, setApiRegions] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!f.account_id) return;
+    setApiRegions([]);
+    api.get(`/foundry/regions?account_id=${f.account_id}`).then((d) => {
+      const arr = d.regions || (Array.isArray(d) ? d : []);
+      if (arr.length > 0) {
+        setApiRegions(arr);
+      }
+    }).catch(() => {});
+  }, [f.account_id]);
+
+  const save = async () => {
+    setErr("");
+    if (!f.account_id || !f.resource_group.trim() || !f.region) return;
+    setBusy(true);
+    try {
+      await api.post("/foundry/ensure", {
+        account_id: Number(f.account_id),
+        name: f.name.trim(),
+        resource_group: f.resource_group.trim(),
+        region: f.region,
+      });
+      toast("开启任务已提交，去任务中心查看", { action: "/jobs", actionLabel: "去查看" });
+      onSaved();
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  const canSubmit = f.account_id && f.resource_group.trim() && f.region;
+
+  return (
+    <Modal title="开启 / 使用 Microsoft Foundry" onClose={onClose}>
+      <div className="space-y-3">
+        <Field label="Azure 账号">
+          <Select value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value })}>
+            {accounts.map((a) => {
+              const t = tiers[a.id];
+              return (
+                <option key={a.id} value={a.id}>
+                  {a.alias} / {a.subscription_id} / {t?.quota_tier || "未知"}
+                </option>
+              );
+            })}
+          </Select>
+        </Field>
+        <Field label="支持区域">
+          <Select value={f.region} onChange={(e) => setF({ ...f, region: e.target.value })}>
+            <option value="">请选择</option>
+            {apiRegions.length > 0
+              ? apiRegions.map((r) => (
+                  <option key={r.code} value={r.code}>{r.display} ({r.name})</option>
+                ))
+              : REGIONS.map((r) => (
+                  <option key={r[0]} value={r[0]}>{regionLabel(r)}</option>
+                ))
+            }
+          </Select>
+        </Field>
+        <Field label="资源组">
+          <Input value={f.resource_group} placeholder="例如: rg-foundry" onChange={(e) => setF({ ...f, resource_group: e.target.value })} />
+        </Field>
+        <Field label="Foundry资源名">
+          <Input value={f.name} placeholder="留空则自动生成；必须全局唯一，2-64位小写字母/数字/连字符" onChange={(e) => setF({ ...f, name: e.target.value })} />
+        </Field>
+
+        <p className="text-[13px] text-slate-500 mt-2 mb-4 leading-relaxed">
+          说明：将创建或复用 Azure 资源 <b className="font-medium text-slate-700">Microsoft.CognitiveServices/accounts</b>，<b className="font-medium text-slate-700">kind=AIServices</b>，<b className="font-medium text-slate-700">sku=S0</b>。<br/>
+          创建后会显示 Endpoint 和 Key，可在 Microsoft Foundry / Azure AI 相关 SDK 中使用。<br/>
+          如果是换区域，请留空资源名或填写新名称；Azure 资源本身不能原地修改区域。
+        </p>
+
+        {err && <p className="text-sm text-red-600">{err}</p>}
+        <div className="flex justify-end gap-2 pt-1">
+          <Btn variant="secondary" onClick={onClose}>取消</Btn>
+          <Btn disabled={!canSubmit || busy} onClick={save}>{busy ? "开启中..." : "开始开启"}</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+

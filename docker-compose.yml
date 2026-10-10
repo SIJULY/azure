@@ -1,0 +1,15 @@
+services:
+  azure-panel:
+    build: .
+    container_name: azure-panel
+    restart: unless-stopped
+    ports:
+      # 宿主机端口:容器端口；如 8080 被占用可改冒号左边
+      - "8080:8000"
+    environment:
+      # 首次启动创建的管理员账号；之后改密码请在面板内修改
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+    volumes:
+      # 数据持久化：SQLite 数据库、加密密钥、JWT 密钥都在这里
+      - ./data:/data
