@@ -385,12 +385,12 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
                   </colgroup>
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
-                      <th className="px-3 h-10 font-medium text-xs align-middle">名称</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle">账户类型</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle">代理</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle">订阅状态</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle">最后检测</th>
-                      <th className="px-3 h-10 font-medium text-xs align-middle text-right">操作</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">名称</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">账户类型</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle text-center pl-8">代理</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">订阅状态</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">最后检测</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle text-center">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -415,13 +415,13 @@ function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, l
                               <span className="mr-1 shrink-0">◇</span><span className="min-w-0 truncate" title={a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}</span>
                             </Badge>
                           </td>
-                          <td className="p-3 align-middle">
+                          <td className="p-3 align-middle pl-8">
                             {a.proxy_url || a.proxy_name ? <div className="truncate font-mono text-[13px] leading-5 text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
                           </td>
                           <td className="p-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
                           <td className="p-3 align-middle truncate text-slate-500" title={formatDateTime(a.last_checked)}>{formatDateTime(a.last_checked)}</td>
                           <td className="p-3 align-middle">
-                            <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                            <div className="flex items-center justify-center gap-1 whitespace-nowrap">
                               <ActionButton title="重新检测账户状态" onClick={() => testOne(a)} disabled={testing === a.id}><Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" /></ActionButton>
                               <ActionButton title="编辑" onClick={() => setEditInit(a)}><Svg d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></ActionButton>
                               <ActionButton title="删除" danger onClick={() => setConfirmDel(a.id)}><Svg d="M19 7l-.9 12.1A2 2 0 0116.1 21H7.9a2 2 0 01-2-1.9L5 7M10 11v6M14 11v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></ActionButton>
