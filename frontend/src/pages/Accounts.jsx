@@ -307,7 +307,7 @@ const STATUS_OPTS = [
   ["inactive", "非活跃"], ["disabled", "已禁用"], ["verifying", "验证中"], ["unchecked", "未检查"],
 ];
 
-function AccountsView({ query, statusF, setStatusF, filtered, items, loading, sel, toggle, toggleAll, refreshAll, setImportOpen, setAddOpen, setConfirmDel, testing, testOne, setEditInit }) {
+function AccountsView({ query, setQuery, statusF, setStatusF, filtered, items, loading, sel, toggle, toggleAll, refreshAll, setImportOpen, setAddOpen, setConfirmDel, testing, testOne, setEditInit }) {
   return (
     <>
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -343,7 +343,7 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                 <Svg d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
               </span>
-              <Input placeholder="搜索账户名称或订阅 ID" className="h-9 rounded-md pl-10 text-sm" value={query} readOnly />
+              <Input placeholder="搜索账户名称、Tenant ID 或订阅 ID" className="h-9 rounded-md pl-10 text-sm" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
             <Select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="h-9 w-full rounded-md sm:w-36 text-sm">
               {STATUS_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
@@ -367,10 +367,19 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
+                <table className="min-w-[1500px] table-fixed text-left text-sm">
+                  <colgroup>
+                    <col className="w-[30%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[5%]" />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
-                      <th className="w-[32%] px-3 h-10 font-medium text-xs align-middle">名称</th>
+                      <th className="px-3 h-10 font-medium text-xs align-middle">名称</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">账户类型</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">订阅</th>
                       <th className="px-3 h-10 font-medium text-xs align-middle">代理</th>
@@ -388,12 +397,12 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                             <div className="flex items-center gap-3">
                               <input type="checkbox" className="h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600" checked={sel.includes(a.id)} onChange={() => toggle(a.id)} />
                               <AccountIcon />
-                              <div className="min-w-0">
+                              <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 text-sm font-medium text-slate-950">
                                   <span className="truncate">{a.alias}</span>
-                                  {flag && <span title={a.country_code}>{flag}</span>}
+                                  {flag && <span className="text-base leading-none" title={`注册资料：${a.country_code}`}>{flag}</span>}
                                 </div>
-                                <div className="mt-1 max-w-[360px] break-all font-mono text-[12px] text-slate-500">ID: {a.id}</div>
+                                <div className="mt-1 break-all font-mono text-[12px] leading-5 text-slate-500">{a.tenant_id || "—"}</div>
                               </div>
                             </div>
                           </td>
@@ -402,12 +411,12 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                               <span className="mr-1">◇</span>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}
                             </Badge>
                           </td>
-                          <td className="p-3 align-middle"><div className="max-w-[260px] break-all font-mono text-[13px] text-slate-600">{a.subscription_id || "—"}</div></td>
+                          <td className="p-3 align-middle"><div className="break-all font-mono text-[13px] leading-5 text-slate-600">{a.subscription_id || "—"}</div></td>
                           <td className="p-3 align-middle">
-                            {a.proxy_url || a.proxy_name ? <div className="max-w-[260px] truncate text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
+                            {a.proxy_url || a.proxy_name ? <div className="break-all font-mono text-[13px] leading-5 text-slate-600" title={a.proxy_url || a.proxy_name}>{a.proxy_url || a.proxy_name}</div> : <span className="text-slate-400">—</span>}
                           </td>
-                          <td className="p-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 max-w-[220px] truncate text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
-                          <td className="p-3 align-middle text-slate-500 whitespace-nowrap">{formatDateTime(a.last_checked)}</td>
+                          <td className="p-3 align-middle"><StatusBadge status={a.status} />{a.status_msg && <div className="mt-1 break-words text-[12px] text-red-500" title={a.status_msg}>{a.status_msg}</div>}</td>
+                          <td className="p-3 align-middle text-slate-500">{formatDateTime(a.last_checked)}</td>
                           <td className="p-3 align-middle">
                             <div className="flex items-center gap-1 whitespace-nowrap">
                               <ActionButton title="重新检测账户状态" onClick={() => testOne(a)} disabled={testing === a.id}><Svg d="M16 4h5v5M21 4l-8.5 8.5M21 12a9 9 0 11-2.6-6.4" /></ActionButton>
@@ -466,7 +475,11 @@ export default function Accounts() {
     const q = query.trim().toLowerCase();
     return items.filter((a) => {
       if (statusF !== "all" && a.status !== statusF) return false;
-      if (q && !((a.alias || "").toLowerCase().includes(q) || (a.subscription_id || "").toLowerCase().includes(q))) return false;
+      if (q && !(
+        (a.alias || "").toLowerCase().includes(q) ||
+        (a.tenant_id || "").toLowerCase().includes(q) ||
+        (a.subscription_id || "").toLowerCase().includes(q)
+      )) return false;
       return true;
     });
   }, [items, query, statusF]);
@@ -507,6 +520,7 @@ export default function Accounts() {
     <>
       <AccountsView
         query={query}
+        setQuery={setQuery}
         statusF={statusF}
         setStatusF={setStatusF}
         filtered={filtered}

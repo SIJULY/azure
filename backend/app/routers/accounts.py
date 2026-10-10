@@ -100,6 +100,7 @@ def _to_out(a: AzureAccount, db: Session) -> dict:
     return {
         "id": a.id,
         "alias": a.alias,
+        "tenant_id": a.tenant_id,
         "subscription_id": a.subscription_id,
         "subscription_name": a.subscription_name or "",
         "country_code": a.country_code or "",
@@ -121,7 +122,11 @@ def list_accounts(q: str = Query(""), status: str = Query("all"),
     query = db.query(AzureAccount).order_by(AzureAccount.id)
     if q:
         like = f"%{q}%"
-        query = query.filter((AzureAccount.alias.like(like)) | (AzureAccount.subscription_id.like(like)))
+        query = query.filter(
+            (AzureAccount.alias.like(like)) |
+            (AzureAccount.subscription_id.like(like)) |
+            (AzureAccount.tenant_id.like(like))
+        )
     if status in ("healthy", "error"):
         query = query.filter_by(status=status)
     accounts = query.all()
