@@ -1,4 +1,4 @@
-"""代理：代理列表的增删改查 + 连通性测试 + 设为默认。对标 AzureIn /proxies。"""
+"""代理：代理列表的增删改查 + 连通性测试 + 设为默认。对标 Azure /proxies。"""
 import socket
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel

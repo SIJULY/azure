@@ -55,7 +55,7 @@ class ProxyConfig(Base):
 
 
 class Proxy(Base):
-    """代理列表：AzureIn 模式，账号可绑定代理。"""
+    """代理列表：Azure 模式，账号可绑定代理。"""
     __tablename__ = "proxies"
     id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)

@@ -1,6 +1,6 @@
 # Azure 面板 (Azure Panel)
 
-单用户自用的 Azure 资源管理面板，参照 [AzureIn](https://azure.684208.xyz) 的布局与功能。
+单用户自用的 Azure 资源管理面板，参照 [Azure](https://azure.684208.xyz) 的布局与功能。
 
 ## 功能
 

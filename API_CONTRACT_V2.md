@@ -1,4 +1,4 @@
-# Azure Panel API 契约 v2（对标 AzureIn，单用户版）
+# Azure Panel API 契约 v2（对标 Azure，单用户版）
 
 Base URL: `/api/v1`，除登录外全部需要 `Authorization: Bearer <jwt>`。
 时间格式 `YYYY-MM-DD HH:MM:S`。错误格式 `{"detail": "..."}`。
@@ -7,7 +7,7 @@ Base URL: `/api/v1`，除登录外全部需要 `Authorization: Bearer <jwt>`。
 - **浅色主题**：白底页面，白色卡片 + 细浅灰边框 + 圆角，间距宽松，内容居中限宽。
 - 主色蓝色（主按钮/高亮/链接）；次要按钮灰/白描边；危险操作红色描边。
 - 表格表头浅灰底；空状态居中图标 + 灰色文字。
-- 顶栏：蓝色方块 Logo + "AzureIn"→改为"Azure面板"？不——品牌用 **"Azure面板"** + 副标题 "Cloud control plane"；搜索框占位"搜索当前页内容...（⌘K)"；"简体中文"；深色切换；圆形头像按钮（用户名首字母）。
+- 顶栏：蓝色方块 Logo + "Azure"→改为"Azure面板"？不——品牌用 **"Azure面板"** + 副标题 "Cloud control plane"；搜索框占位"搜索当前页内容...（⌘K)"；"简体中文"；深色切换；圆形头像按钮（用户名首字母）。
 - 侧边栏分组：平台（总览、Azure 账号、代理、账单费用、资源配额）、资源管理（资源组、虚拟机、Foundry、初始化脚本）、运维中心（任务中心、API 访问、API 文档）。当前页高亮。底部 "© 2026 Azure Panel"。
 - 页面头：面包屑 "Azure面板 / X"，下方灰色副标题（各页副标题见下）。
 
@@ -65,7 +65,7 @@ UI：过滤行：Azure 账号下拉（"全部账户"）、区域下拉（"全部
 - `GET /api/v1/vms/meta?account_id=&region=` → `{regions:[{code,name_cn}], vm_sizes, os_images, ip_permission}`
 - `POST /api/v1/vms` `{account_id,region,vm_size,os_image?,os_image_data?,disk_size_gb?,disk_type?,ip_type?,vm_name?,username?,password?,ssh_key?,user_data?,dd_system?}` → `{job_id}`
 - `POST /api/v1/vms/action` `{account_id,resource_group,vm_name,action:start|stop|restart|delete|change_ip}` → `{job_id}`
-UI：过滤行：Azure 账号下拉（"全部账户"）、区域下拉（"全部地区"）、灰色"刷新"、蓝色"+ 创建虚拟机"；"虚拟机"卡（副标题"启动可附带 sh/PowerShell 脚本。更换 IP 会先绑定新地址，再清理 AzureIn 管理的旧地址。"→把 AzureIn 改为"面板"）；表格列：名称、状态、配置、公网 IP、资源组、位置、操作（启动/关机/重启/更换 IP/删除）；空"暂无可访问的虚拟机"。创建弹窗字段：区域（中文名）、规格、镜像、磁盘大小/类型、IP 类型、VM 名、用户名、密码、SSH Key、初始化脚本（从脚本模板选择填入 user_data）、DD 重装开关。
+UI：过滤行：Azure 账号下拉（"全部账户"）、区域下拉（"全部地区"）、灰色"刷新"、蓝色"+ 创建虚拟机"；"虚拟机"卡（副标题"启动可附带 sh/PowerShell 脚本。更换 IP 会先绑定新地址，再清理 Azure 管理的旧地址。"→把 Azure 改为"面板"）；表格列：名称、状态、配置、公网 IP、资源组、位置、操作（启动/关机/重启/更换 IP/删除）；空"暂无可访问的虚拟机"。创建弹窗字段：区域（中文名）、规格、镜像、磁盘大小/类型、IP 类型、VM 名、用户名、密码、SSH Key、初始化脚本（从脚本模板选择填入 user_data）、DD 重装开关。
 
 ## Foundry
 副标题："管理账号、项目、部署和访问密钥。"
@@ -74,7 +74,7 @@ UI：过滤行：Azure 账号下拉（"全部账户"）、区域下拉（"全部
 - `GET /api/v1/foundry/resources?account_id=` → `[{name,resource_group,location,sku,kind}]`
 - `POST /api/v1/foundry/ensure` `{account_id,region,resource_group?}` → `{job_id}`
 - `POST /api/v1/foundry/deploy` `{account_id,region,resource_group?,foundry_name,deployment_name,model_name,model_version,sku_name?,capacity?}` → `{job_id}`
-UI：过滤行：Azure 账号下拉（"全部账户"）、Foundry 账号下拉（"全部账户"）、灰色"刷新"、蓝色"+ 创建 Foundry 账号"、蓝色"+ 批量部署模型"；表格列：Azure 账号、订阅、配额层级、订阅状态、操作（部署模型）；另加页签或区块展示模型列表与部署任务。（"升级可用状态/下一层级可用时间"等 AzureIn 特有字段无数据源，省略）
+UI：过滤行：Azure 账号下拉（"全部账户"）、Foundry 账号下拉（"全部账户"）、灰色"刷新"、蓝色"+ 创建 Foundry 账号"、蓝色"+ 批量部署模型"；表格列：Azure 账号、订阅、配额层级、订阅状态、操作（部署模型）；另加页签或区块展示模型列表与部署任务。（"升级可用状态/下一层级可用时间"等 Azure 特有字段无数据源，省略）
 
 ## 初始化脚本
 副标题："维护 Linux cloud-init 和 Windows PowerShell 模板。"
@@ -105,4 +105,4 @@ UI：顶部"OpenAPI 3.2.0"徽章 + 右上"下载 OpenAPI JSON"（链接 `/api/v1
 - 长耗时操作返回 `{job_id}`，前端提示去任务中心查看并提供跳转。
 - 所有请求 401 时跳登录页。
 - 空状态统一：居中图标 + 灰色文字。
-- 不要深色主题！AzureIn 是浅色主题。
+- 不要深色主题！Azure 是浅色主题。

@@ -313,7 +313,7 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="text-[20px] font-semibold tracking-tight text-slate-950">
-            <span className="text-slate-500">AzureIn</span>
+            <span className="text-slate-500">Azure</span>
             <span className="mx-2 text-slate-300">/</span>
             <span>Azure 账号</span>
           </div>

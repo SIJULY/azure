@@ -141,7 +141,7 @@ function jobResource(job) {
   return (job.id || "").slice(0, 12) || "—";
 }
 
-// 操作类型中文映射（对标 AzureIn）
+// 操作类型中文映射（对标 Azure）
 const JOB_TYPE_NAMES = {
   account_test: "Azure 账号",
   auth_login: "登录",

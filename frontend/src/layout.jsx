@@ -125,7 +125,7 @@ function TopBrandBar() {
     <div className="h-10 bg-white border-b border-slate-200 px-2.5 py-1.5 shrink-0">
       <div className="h-full w-full rounded-[16px] border border-slate-200 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.03),0_1px_2px_rgba(15,23,42,0.05)] flex items-center justify-center gap-1.5">
         <AzureMark className="w-[18px] h-[18px]" />
-        <span className="text-[13px] font-medium text-slate-600 tracking-tight">AzureIn</span>
+        <span className="text-[13px] font-medium text-slate-600 tracking-tight">Azure</span>
       </div>
     </div>
   );
@@ -158,7 +158,7 @@ function TopBar({ onSearch }) {
     <header className="h-[68px] bg-white border-b border-slate-200 flex items-center gap-4 px-6 shrink-0 sticky top-0 z-40">
       <div className="flex flex-col justify-center shrink-0 min-w-[280px]">
         <div className="flex items-center gap-2.5 text-[14px] leading-none">
-          <span className="text-slate-500 font-normal">AzureIn</span>
+          <span className="text-slate-500 font-normal">Azure</span>
           <span className="text-slate-500 text-[16px] font-light">/</span>
           <button className="inline-flex items-center gap-1.5 text-slate-950 font-semibold hover:text-slate-700">
             {currentLabel}
@@ -214,7 +214,7 @@ function Sidebar() {
     <aside className="w-[220px] shrink-0 bg-white border-r border-slate-200 flex flex-col">
       <div className="h-[68px] border-b border-slate-200 flex items-center px-5 gap-3 shrink-0">
         <AzureMark className="w-7 h-7" />
-        <span className="text-[15px] font-semibold text-slate-950 tracking-tight">AzureIn</span>
+        <span className="text-[15px] font-semibold text-slate-950 tracking-tight">Azure</span>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
         {GROUPS.map((g) => (
@@ -244,7 +244,7 @@ function Sidebar() {
         ))}
       </nav>
       <div className="px-3 py-2.5 text-[11px] text-slate-400 border-t border-slate-100">
-        © 2026 AzureIn
+        © 2026 Azure
       </div>
     </aside>
   );
