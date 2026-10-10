@@ -47,37 +47,11 @@ def _parse_ymd(iso: str):
         return None
 
 
-def _heuristic_upgrade(has_foundry: bool, assignment_date: str) -> tuple:
-    """API 未返回升级资格时的启发式估算。
-
-    依据：当前层级的分配日期。分配满 30 天即视为可能符合升级条件。
-    （阈值 N_DAYS 可调）
-    """
-    from datetime import datetime, timedelta
-    if not has_foundry:
-        return "未开启 Foundry", "-"
-    assign_dt = _parse_ymd(assignment_date)
-    if not assign_dt:
-        return "不可用", "-"
-    N_DAYS = 30
-    days_passed = (datetime.now() - assign_dt).days
-    if days_passed >= N_DAYS:
-        return "可升级", "-"
-    return "不可用", (assign_dt + timedelta(days=N_DAYS)).strftime("%Y-%m-%d")
-
-
 def _do_fetch_quotas(account_id: int, db: Session) -> dict:
     try:
         mgr, acct = get_manager(account_id, db)
     except Exception as e:
         raise HTTPException(400, str(e))
-
-    # 是否开通过 Foundry 资源（AI Services / OpenAI kind）
-    try:
-        from .foundry import _cached_foundry_resources
-        has_foundry = len(_cached_foundry_resources(account_id) or []) > 0
-    except Exception:
-        has_foundry = False
 
     result = {
         "account_id": account_id,
@@ -85,7 +59,9 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
         "quota_tier": "",
         "vm_quotas": [],
         "error": "",
-        "upgrade_available": "不可用",
+        # 升级相关列：以 Quota Tiers API 真实数据为准，无数据时显示 "-"
+        # （与参照站一致，不做日期估算）
+        "upgrade_available": "-",
         "next_tier_available_at": "-",
         "upgrade_policy": "自动升级",
     }
@@ -100,8 +76,8 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
                     result["quota_tier"] = tier_data.get("quota_tier", "")
                     result["cognitiveservices"] = tier_data
 
-                    # 用 Quota Tiers API 的真实升级资格覆盖启发式估算；
-                    # API 未返回资格信息时，用层级分配日期做启发式估算
+                    # 用 Quota Tiers API 的真实升级资格填充；
+                    # API 未返回时保持 "-"（与参照站一致，不做估算）
                     api_status = (tier_data.get("upgrade_available") or "").strip()
                     if api_status:
                         result["upgrade_available"] = _cn_upgrade_status(
@@ -110,21 +86,12 @@ def _do_fetch_quotas(account_id: int, db: Session) -> dict:
                         result["next_tier_available_at"] = _fmt_ymd(
                             tier_data.get("upgrade_applicable_date", "")
                         )
-                    else:
-                        ua, nd = _heuristic_upgrade(has_foundry, tier_data.get("assignment_date", ""))
-                        result["upgrade_available"] = ua
-                        result["next_tier_available_at"] = nd
                     policy = (tier_data.get("tier_upgrade_policy") or "").strip()
                     if policy:
                         result["upgrade_policy"] = _cn_upgrade_policy(policy)
                     nxt = (tier_data.get("next_tier_name") or "").strip()
                     if nxt:
                         result["next_tier_name"] = nxt
-                else:
-                    # tier API 无数据：仅用启发式
-                    ua, nd = _heuristic_upgrade(has_foundry, "")
-                    result["upgrade_available"] = ua
-                    result["next_tier_available_at"] = nd
             except Exception:
                 pass
             # 各区域计算配额（只查 4 个常用区域，避免触发限流）
