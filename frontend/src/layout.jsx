@@ -218,7 +218,7 @@ export default function Layout() {
         <div className="flex-1 flex min-h-0">
           <Sidebar />
           <main className="app-main-content flex-1 overflow-y-auto">
-            <div className="max-w-[1360px] mx-auto px-6 py-5">
+            <div className="max-w-[1500px] mx-auto px-4 py-4 sm:px-6">
               <Outlet />
             </div>
           </main>
