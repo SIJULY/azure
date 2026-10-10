@@ -371,7 +371,7 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
                       <th className="w-[28%] px-3 h-10 font-medium text-xs align-middle text-left pl-[72px]">名称</th>
-                      <th className="w-[16%] px-3 h-10 font-medium text-xs align-middle text-left">账户类型</th>
+                      <th className="w-[16%] px-3 h-10 font-medium text-xs align-middle text-center">账户类型</th>
                       <th className="w-[16%] px-3 h-10 font-medium text-xs align-middle text-center">代理</th>
                       <th className="w-[12%] px-3 h-10 font-medium text-xs align-middle text-center">订阅状态</th>
                       <th className="w-[18%] px-3 h-10 font-medium text-xs align-middle text-center">最后检测</th>
@@ -395,7 +395,7 @@ function AccountsView({ query, statusF, setStatusF, filtered, items, loading, se
                               </div>
                             </div>
                           </td>
-                          <td className="p-3 align-middle text-left">
+                          <td className="p-3 align-middle text-center">
                             <Badge color="blue" className="max-w-full rounded-full px-3 py-1 text-[13px]">
                               <span className="mr-1 shrink-0">◇</span>
                               <span className="min-w-0 truncate" title={a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}>{a.subscription_name || a.quota_tier || "Microsoft Azure 计划"}</span>
